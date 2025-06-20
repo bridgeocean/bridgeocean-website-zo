@@ -6,19 +6,23 @@ import { DashboardHeader } from "@/components/dashboard-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CalendarDays, MessageSquare, UserPlus, Users, Mail, Calendar, Bot, BarChart3, Settings } from "lucide-react"
-import { CandidateTable } from "./components/candidate-table"
-import { RecentActivity } from "./components/recent-activity"
-import { Overview } from "./components/overview"
-import { EmailAutomation } from "@/components/admin/email-automation"
-import { CalendarIntegration } from "@/components/admin/calendar-integration"
-import { EnhancedAI } from "@/components/admin/enhanced-ai"
-import { AdvancedWhatsApp } from "@/components/admin/advanced-whatsapp"
-import { AnalyticsDashboard } from "@/components/admin/analytics-dashboard"
+import { CalendarDays, Car, Users, UserPlus, Settings, Plus } from "lucide-react"
+import { CharterBookings } from "./components/charter-bookings"
+import { FleetVehicles } from "./components/fleet-vehicles"
+import { PartnerRegistrations } from "./components/partner-registrations"
 import Link from "next/link"
+import { supabase, isSupabaseConfigured } from "@/lib/supabase"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function DashboardPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [stats, setStats] = useState({
+    totalBookings: 0,
+    totalVehicles: 0,
+    totalPartners: 0,
+    pendingPartners: 0,
+  })
+  const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
@@ -26,13 +30,86 @@ export default function DashboardPage() {
     const authStatus = localStorage.getItem("bridgeoceanAdminAuth")
     if (authStatus === "true") {
       setIsAuthenticated(true)
+      loadDashboardStats()
     } else {
       router.push("/admin-login")
     }
   }, [router])
 
+  const loadDashboardStats = async () => {
+    try {
+      setLoading(true)
+
+      if (!isSupabaseConfigured()) {
+        // Demo data when Supabase is not configured
+        setStats({
+          totalBookings: 18,
+          totalVehicles: 12,
+          totalPartners: 8,
+          pendingPartners: 3,
+        })
+        setLoading(false)
+        return
+      }
+
+      // Load real data from Supabase
+      const [bookingsResult, vehiclesResult, partnersResult] = await Promise.allSettled([
+        supabase.from("charter_bookings").select("id", { count: "exact" }),
+        supabase.from("fleet_vehicles").select("id", { count: "exact" }),
+        supabase.from("partner_registrations").select("id, status", { count: "exact" }),
+      ])
+
+      let totalBookings = 0
+      let totalVehicles = 0
+      let totalPartners = 0
+      let pendingPartners = 0
+
+      // Handle bookings result
+      if (bookingsResult.status === "fulfilled" && !bookingsResult.value?.error) {
+        totalBookings = bookingsResult.value.count || bookingsResult.value.data?.length || 0
+      }
+
+      // Handle vehicles result
+      if (vehiclesResult.status === "fulfilled" && !vehiclesResult.value?.error) {
+        totalVehicles = vehiclesResult.value.count || vehiclesResult.value.data?.length || 0
+      }
+
+      // Handle partners result
+      if (partnersResult.status === "fulfilled" && !partnersResult.value?.error) {
+        const partners = partnersResult.value.data || []
+        totalPartners = partners.length
+        pendingPartners = partners.filter((p) => p.status === "pending").length
+      }
+
+      setStats({
+        totalBookings,
+        totalVehicles,
+        totalPartners,
+        pendingPartners,
+      })
+    } catch (error) {
+      console.error("Error loading dashboard stats:", error)
+      // Fallback to demo data on any error
+      setStats({
+        totalBookings: 18,
+        totalVehicles: 12,
+        totalPartners: 8,
+        pendingPartners: 3,
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (!isAuthenticated) {
-    return <div>Loading...</div>
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p>Loading dashboard...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -40,12 +117,15 @@ export default function DashboardPage() {
       <DashboardHeader />
       <div className="flex-1 space-y-4 p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">Bridgeocean Admin Dashboard</h2>
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Charter & Partner Dashboard</h2>
+            <p className="text-muted-foreground">Manage charter bookings, fleet vehicles, and partner registrations</p>
+          </div>
           <div className="flex items-center space-x-2">
-            <Link href="/dashboard/candidates/new">
+            <Link href="/charter/book">
               <Button>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Add Candidate
+                <Plus className="mr-2 h-4 w-4" />
+                New Booking
               </Button>
             </Link>
             <Link href="/dashboard/settings">
@@ -57,189 +137,112 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-8">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="email">📧 Email</TabsTrigger>
-            <TabsTrigger value="calendar">📅 Calendar</TabsTrigger>
-            <TabsTrigger value="ai">🤖 AI Assistant</TabsTrigger>
-            <TabsTrigger value="whatsapp">📱 WhatsApp</TabsTrigger>
-            <TabsTrigger value="analytics">📊 Analytics</TabsTrigger>
-            <TabsTrigger value="candidates">Candidates</TabsTrigger>
-            <TabsTrigger value="settings" onClick={() => router.push("/dashboard/settings")}>
-              ⚙️ Settings
-            </TabsTrigger>
+        {!isSupabaseConfigured() && (
+          <Alert>
+            <Car className="h-4 w-4" />
+            <AlertDescription>
+              Database not configured. Showing demo data. Add your Supabase environment variables to see live data.
+              <br />
+              <strong>Required:</strong> NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Key Metrics */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Charter Bookings</CardTitle>
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {loading ? <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div> : stats.totalBookings}
+              </div>
+              <p className="text-xs text-muted-foreground">Total bookings</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Fleet Vehicles</CardTitle>
+              <Car className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {loading ? <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div> : stats.totalVehicles}
+              </div>
+              <p className="text-xs text-muted-foreground">Available vehicles</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Partners</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {loading ? <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div> : stats.totalPartners}
+              </div>
+              <p className="text-xs text-muted-foreground">Registered partners</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Partners</CardTitle>
+              <UserPlus className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {loading ? <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div> : stats.pendingPartners}
+              </div>
+              <p className="text-xs text-muted-foreground">Awaiting approval</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content Tabs */}
+        <Tabs defaultValue="bookings" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="bookings">Charter Bookings</TabsTrigger>
+            <TabsTrigger value="vehicles">Fleet Vehicles</TabsTrigger>
+            <TabsTrigger value="partners">Partner Registrations</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Candidates</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">245</div>
-                  <p className="text-xs text-muted-foreground">+12% from last month</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Charter Bookings</CardTitle>
-                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">18</div>
-                  <p className="text-xs text-muted-foreground">+2 this week</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Active E-hailing Drivers</CardTitle>
-                  <UserPlus className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">64</div>
-                  <p className="text-xs text-muted-foreground">+6 this month</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">WhatsApp Messages</CardTitle>
-                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">127</div>
-                  <p className="text-xs text-muted-foreground">+23 today</p>
-                </CardContent>
-              </Card>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-              <Card className="col-span-4">
-                <CardHeader>
-                  <CardTitle>Business Overview</CardTitle>
-                </CardHeader>
-                <CardContent className="pl-2">
-                  <Overview />
-                </CardContent>
-              </Card>
-              <Card className="col-span-3">
-                <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
-                  <CardDescription>Latest actions across all services</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <RecentActivity />
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="email" className="space-y-4">
+          <TabsContent value="bookings" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Mail className="h-5 w-5" />
-                  Enhanced Email Tools
-                </CardTitle>
-                <CardDescription>Automated emails with Bridgeocean terminology</CardDescription>
+                <CardTitle>Charter Bookings</CardTitle>
+                <CardDescription>Manage all charter service bookings</CardDescription>
               </CardHeader>
               <CardContent>
-                <EmailAutomation />
+                <CharterBookings />
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="calendar" className="space-y-4">
+          <TabsContent value="vehicles" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Calendar Integration
-                </CardTitle>
-                <CardDescription>Charter bookings and partner appointments</CardDescription>
+                <CardTitle>Fleet Vehicles</CardTitle>
+                <CardDescription>Manage your charter vehicle fleet</CardDescription>
               </CardHeader>
               <CardContent>
-                <CalendarIntegration />
+                <FleetVehicles />
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="ai" className="space-y-4">
+          <TabsContent value="partners" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bot className="h-5 w-5" />
-                  Enhanced AI Assistant
-                </CardTitle>
-                <CardDescription>Smart responses with Bridgeocean knowledge</CardDescription>
+                <CardTitle>Partner Registrations</CardTitle>
+                <CardDescription>Manage partner applications and registrations</CardDescription>
               </CardHeader>
               <CardContent>
-                <EnhancedAI />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="whatsapp" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
-                  Advanced WhatsApp Tools
-                </CardTitle>
-                <CardDescription>Driver management and customer communications</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AdvancedWhatsApp />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="analytics" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Analytics Dashboard
-                </CardTitle>
-                <CardDescription>Business insights and performance metrics</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AnalyticsDashboard />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="candidates" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>All Candidates</CardTitle>
-                <CardDescription>Manage and track all driver candidates</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <CandidateTable />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
-                  System Settings
-                </CardTitle>
-                <CardDescription>Configure system preferences and integrations</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-center">
-                  <Link href="/dashboard/settings">
-                    <Button>
-                      <Settings className="mr-2 h-4 w-4" />
-                      Go to Settings
-                    </Button>
-                  </Link>
-                </div>
+                <PartnerRegistrations />
               </CardContent>
             </Card>
           </TabsContent>

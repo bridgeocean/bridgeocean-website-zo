@@ -41,6 +41,42 @@ export async function POST(request: Request) {
 
     console.log("Contact message saved successfully:", data)
 
+    // Send email notification to admin
+    try {
+      const emailResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/api/send-email`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            to: "bridgeocean@cyberservices.com",
+            subject: `New Contact Form Submission: ${formData.subject}`,
+            html: `
+        <h2>New Contact Form Submission</h2>
+        <p><strong>Name:</strong> ${formData.firstName} ${formData.lastName}</p>
+        <p><strong>Email:</strong> ${formData.email}</p>
+        <p><strong>Phone:</strong> ${formData.phone}</p>
+        <p><strong>Subject:</strong> ${formData.subject}</p>
+        <p><strong>Message:</strong></p>
+        <p>${formData.message}</p>
+        <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
+      `,
+          }),
+        },
+      )
+
+      if (emailResponse.ok) {
+        console.log("Email notification sent successfully")
+      } else {
+        console.error("Failed to send email notification")
+      }
+    } catch (emailError) {
+      console.error("Email sending error:", emailError)
+      // Don't fail the main request if email fails
+    }
+
     return NextResponse.json({ success: true, data })
   } catch (error: any) {
     console.error("API Error:", error)

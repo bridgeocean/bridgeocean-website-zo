@@ -327,9 +327,15 @@ export default function NexusPage() {
                   <Mail className="h-5 w-5 text-primary" />
                   <span>bridgeocean@cyberservices.com</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="h-5 w-5 text-primary" />
-                  <span>08135261568</span>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-5 w-5 text-primary" />
+                    <span>+234 913 563 0154 (WhatsApp only)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-5 w-5 text-primary" />
+                    <span>+234 906 918 3165 (Mobile & WhatsApp)</span>
+                  </div>
                 </div>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row mt-6">

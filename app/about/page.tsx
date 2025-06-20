@@ -196,7 +196,7 @@ export default function AboutPage() {
         <section className="w-full py-12 md:py-24 lg:py-32">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Our Fleet</h2>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Selected Premium Fleet</h2>
               <p className="max-w-[900px] text-muted-foreground md:text-xl">
                 Our current fleet includes premium vehicles for all your transportation needs
               </p>
@@ -228,9 +228,10 @@ export default function AboutPage() {
                       <span className="font-medium">Price:</span>
                       <span className="font-bold">₦100,000 per 10 hours</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      *Within Lagos. Additional charges apply for trips outside Lagos.
-                    </p>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p>*Within Lagos. Additional charges apply outside Lagos.</p>
+                      <p>Driver & full tank petrol included.</p>
+                    </div>
                     <Link href="/charter/book">
                       <Button className="w-full mt-2">Book Now</Button>
                     </Link>
@@ -257,9 +258,10 @@ export default function AboutPage() {
                       <span className="font-medium">Price:</span>
                       <span className="font-bold">₦200,000 per 10 hours</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      *Within Lagos. Additional charges apply for trips outside Lagos.
-                    </p>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p>*Within Lagos. Additional charges apply outside Lagos.</p>
+                      <p>Driver & full tank petrol included.</p>
+                    </div>
                     <Link href="/charter/book">
                       <Button className="w-full mt-2">Book Now</Button>
                     </Link>

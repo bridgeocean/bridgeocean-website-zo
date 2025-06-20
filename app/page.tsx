@@ -119,13 +119,12 @@ export default function Home() {
                 <CardHeader className="pb-4">
                   <div className="flex items-center space-x-2">
                     <Calendar className="h-8 w-8 text-primary" />
-                    <CardTitle className="text-2xl">Charter & Driver Management</CardTitle>
+                    <CardTitle className="text-2xl">Charter Management</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <CardDescription className="text-base">
-                    Premium charter services with intelligent driver onboarding platform that streamlines recruitment,
-                    interviews, and fleet management operations.
+                    Premium charter services with intelligent fleet management operations.
                   </CardDescription>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div className="flex items-center space-x-2">
@@ -149,6 +148,9 @@ export default function Home() {
                     <Link href="/charter/book">
                       <Button>Book Charter</Button>
                     </Link>
+                    <Link href="/charter/fleet">
+                      <Button variant="outline">Learn More</Button>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>
@@ -161,7 +163,7 @@ export default function Home() {
           <div className="container px-4 md:px-6 mx-auto">
             <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
               <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Our Premium Fleet</h2>
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Selected Premium Fleet</h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl">
                   Experience luxury and comfort with our selection of premium vehicles
                 </p>
@@ -194,9 +196,10 @@ export default function Home() {
                       <span className="font-medium">Price:</span>
                       <span className="font-bold">₦100,000 per 10 hours</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      *Within Lagos. Additional charges apply for trips outside Lagos.
-                    </p>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p>*Within Lagos. Additional charges apply outside Lagos.</p>
+                      <p>Driver & full tank petrol included.</p>
+                    </div>
                     <Link href="/charter/book">
                       <Button className="w-full mt-2">Book Now</Button>
                     </Link>
@@ -223,9 +226,10 @@ export default function Home() {
                       <span className="font-medium">Price:</span>
                       <span className="font-bold">₦200,000 per 10 hours</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      *Within Lagos. Additional charges apply for trips outside Lagos.
-                    </p>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p>*Within Lagos. Additional charges apply outside Lagos.</p>
+                      <p>Driver & full tank petrol included.</p>
+                    </div>
                     <Link href="/charter/book">
                       <Button className="w-full mt-2">Book Now</Button>
                     </Link>

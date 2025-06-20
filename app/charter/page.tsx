@@ -17,7 +17,8 @@ const vehicles = [
     image: "/images/camry-final.jpg",
     features: ["Leather Interior", "Air Conditioning", "Fuel Efficient", "Professional Driver"],
     available: true,
-    note: "*Within Lagos. Additional charges apply for trips outside Lagos.",
+    note: "*Within Lagos. Additional charges apply outside Lagos.",
+    included: "Driver & full tank petrol included.",
   },
   {
     id: 2,
@@ -29,7 +30,8 @@ const vehicles = [
     image: "/images/gmc-final.jpg",
     features: ["Spacious Interior", "Entertainment System", "Comfortable Ride", "Professional Driver"],
     available: true,
-    note: "*Within Lagos. Additional charges apply for trips outside Lagos.",
+    note: "*Within Lagos. Additional charges apply outside Lagos.",
+    included: "Driver & full tank petrol included.",
   },
 ]
 
@@ -101,7 +103,7 @@ export default function CharterPage() {
         <section className="w-full py-12 md:py-24 lg:py-32 bg-muted">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Our Premium Fleet</h2>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Selected Premium Fleet</h2>
               <p className="max-w-[900px] text-muted-foreground md:text-xl">
                 Choose from our carefully curated selection of luxury vehicles
               </p>
@@ -149,7 +151,10 @@ export default function CharterPage() {
                           </Badge>
                         ))}
                       </div>
-                      <p className="text-xs text-muted-foreground">{vehicle.note}</p>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <p>{vehicle.note}</p>
+                        <p>{vehicle.included}</p>
+                      </div>
                       <div className="flex gap-2">
                         <Link href={`/charter/book?vehicle=${vehicle.id}`} className="flex-1">
                           <Button className="w-full" disabled={!vehicle.available}>

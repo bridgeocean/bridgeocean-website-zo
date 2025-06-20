@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
 import { MainNav } from "@/components/main-nav"
 import { Button } from "@/components/ui/button"
@@ -43,6 +45,41 @@ export default function PartnerPage() {
     vehicleInfo: {},
     documents: {},
   })
+
+  const [uploadingFiles, setUploadingFiles] = useState<{ [key: string]: boolean }>({})
+  const [uploadedFiles, setUploadedFiles] = useState<{ [key: string]: string }>({})
+
+  const handleFileUpload = async (documentType: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setUploadingFiles((prev) => ({ ...prev, [documentType]: true }))
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("documentType", documentType)
+
+      const response = await fetch("/api/upload-to-drive", {
+        method: "POST",
+        body: formData,
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setUploadedFiles((prev) => ({ ...prev, [documentType]: file.name }))
+        alert(`${file.name} uploaded successfully to Google Drive!`)
+      } else {
+        alert("Upload failed. Please try again.")
+      }
+    } catch (error) {
+      console.error("Upload error:", error)
+      alert("Upload failed. Please try again.")
+    } finally {
+      setUploadingFiles((prev) => ({ ...prev, [documentType]: false }))
+    }
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -268,17 +305,49 @@ export default function PartnerPage() {
                           <p className="text-sm text-muted-foreground mb-4">
                             Upload NIN slip or International Passport
                           </p>
-                          <Button variant="outline" size="sm">
-                            Choose File
+                          <input
+                            type="file"
+                            id="identification"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={(e) => handleFileUpload("identification", e)}
+                            className="hidden"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => document.getElementById("identification")?.click()}
+                            disabled={uploadingFiles.identification}
+                            type="button"
+                          >
+                            {uploadingFiles.identification ? "Uploading..." : "Choose File"}
                           </Button>
+                          {uploadedFiles.identification && (
+                            <p className="text-sm text-green-600 mt-2">✓ {uploadedFiles.identification}</p>
+                          )}
                         </div>
                         <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
                           <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                           <h4 className="font-medium mb-2">Vehicle Registration</h4>
                           <p className="text-sm text-muted-foreground mb-4">Upload vehicle registration document</p>
-                          <Button variant="outline" size="sm">
-                            Choose File
+                          <input
+                            type="file"
+                            id="vehicleRegistration"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={(e) => handleFileUpload("vehicleRegistration", e)}
+                            className="hidden"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => document.getElementById("vehicleRegistration")?.click()}
+                            disabled={uploadingFiles.vehicleRegistration}
+                            type="button"
+                          >
+                            {uploadingFiles.vehicleRegistration ? "Uploading..." : "Choose File"}
                           </Button>
+                          {uploadedFiles.vehicleRegistration && (
+                            <p className="text-sm text-green-600 mt-2">✓ {uploadedFiles.vehicleRegistration}</p>
+                          )}
                         </div>
                       </div>
                       <div className="space-y-4">
@@ -286,9 +355,25 @@ export default function PartnerPage() {
                           <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                           <h4 className="font-medium mb-2">Insurance Certificate</h4>
                           <p className="text-sm text-muted-foreground mb-4">Upload current insurance certificate</p>
-                          <Button variant="outline" size="sm">
-                            Choose File
+                          <input
+                            type="file"
+                            id="insuranceCertificate"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={(e) => handleFileUpload("insuranceCertificate", e)}
+                            className="hidden"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => document.getElementById("insuranceCertificate")?.click()}
+                            disabled={uploadingFiles.insuranceCertificate}
+                            type="button"
+                          >
+                            {uploadingFiles.insuranceCertificate ? "Uploading..." : "Choose File"}
                           </Button>
+                          {uploadedFiles.insuranceCertificate && (
+                            <p className="text-sm text-green-600 mt-2">✓ {uploadedFiles.insuranceCertificate}</p>
+                          )}
                         </div>
                         <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
                           <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -296,9 +381,26 @@ export default function PartnerPage() {
                           <p className="text-sm text-muted-foreground mb-4">
                             Upload 4-6 high-quality photos of your vehicle
                           </p>
-                          <Button variant="outline" size="sm">
-                            Choose Files
+                          <input
+                            type="file"
+                            id="vehiclePhotos"
+                            accept=".jpg,.jpeg,.png"
+                            multiple
+                            onChange={(e) => handleFileUpload("vehiclePhotos", e)}
+                            className="hidden"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => document.getElementById("vehiclePhotos")?.click()}
+                            disabled={uploadingFiles.vehiclePhotos}
+                            type="button"
+                          >
+                            {uploadingFiles.vehiclePhotos ? "Uploading..." : "Choose Files"}
                           </Button>
+                          {uploadedFiles.vehiclePhotos && (
+                            <p className="text-sm text-green-600 mt-2">✓ {uploadedFiles.vehiclePhotos}</p>
+                          )}
                         </div>
                       </div>
                     </div>

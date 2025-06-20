@@ -1,17 +1,85 @@
 import { createClient } from "@supabase/supabase-js"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co"
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-key"
+// Check if Supabase is properly configured
+export function isSupabaseConfigured(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+  return !!(
+    (
+      url &&
+      key &&
+      url !== "https://placeholder.supabase.co" &&
+      key !== "placeholder-key" &&
+      url.includes("supabase.co") &&
+      key.length > 20
+    ) // Basic validation for key length
+  )
+}
 
-// Server-side client for NextAuth
-export const supabaseAdmin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-})
+// Get Supabase configuration
+function getSupabaseConfig() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!isSupabaseConfigured()) {
+    // Return null config when not properly configured
+    return { url: null, key: null }
+  }
+
+  return { url, key }
+}
+
+// Create Supabase client only if properly configured
+function createSupabaseClient() {
+  const { url, key } = getSupabaseConfig()
+
+  if (!url || !key) {
+    // Return a mock client that throws helpful errors
+    return {
+      from: () => ({
+        select: () => Promise.resolve({ data: [], error: new Error("Supabase not configured") }),
+        insert: () => Promise.resolve({ data: null, error: new Error("Supabase not configured") }),
+        update: () => Promise.resolve({ data: null, error: new Error("Supabase not configured") }),
+        delete: () => Promise.resolve({ data: null, error: new Error("Supabase not configured") }),
+      }),
+      auth: {
+        signUp: () => Promise.resolve({ data: null, error: new Error("Supabase not configured") }),
+        signIn: () => Promise.resolve({ data: null, error: new Error("Supabase not configured") }),
+        signOut: () => Promise.resolve({ error: new Error("Supabase not configured") }),
+      },
+    } as any
+  }
+
+  return createClient(url, key)
+}
+
+// Create Supabase admin client only if properly configured
+function createSupabaseAdminClient() {
+  const { url } = getSupabaseConfig()
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!url || !serviceRoleKey) {
+    return {
+      from: () => ({
+        select: () => Promise.resolve({ data: [], error: new Error("Supabase admin not configured") }),
+        insert: () => Promise.resolve({ data: null, error: new Error("Supabase admin not configured") }),
+        update: () => Promise.resolve({ data: null, error: new Error("Supabase admin not configured") }),
+        delete: () => Promise.resolve({ data: null, error: new Error("Supabase admin not configured") }),
+      }),
+    } as any
+  }
+
+  return createClient(url, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
+}
+
+export const supabase = createSupabaseClient()
+export const supabaseAdmin = createSupabaseAdminClient()
 
 // Database types for authentication
 export type Database = {

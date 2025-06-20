@@ -33,17 +33,27 @@ export default function ContactPage() {
     setSubmitMessage("")
 
     try {
-      const response = await fetch("/api/contact-message", {
+      const response = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Accept: "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          access_key: "5646250a-18d1-4d84-a6be-2d4e7f57605c",
+          name: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          phone: formData.phone,
+          subject: formData.subject,
+          message: formData.message,
+          from_name: `${formData.firstName} ${formData.lastName}`,
+          replyto: formData.email,
+        }),
       })
 
       const result = await response.json()
 
-      if (response.ok) {
+      if (result.success) {
         setSubmitMessage("✅ Your message has been sent successfully! We will get back to you within 24 hours.")
         // Reset form
         setFormData({
@@ -55,7 +65,7 @@ export default function ContactPage() {
           message: "",
         })
       } else {
-        setSubmitMessage(`❌ Error: ${result.error || "Failed to send message"}`)
+        setSubmitMessage(`❌ Error: ${result.message || "Failed to send message"}`)
       }
     } catch (error) {
       console.error("Submit error:", error)
