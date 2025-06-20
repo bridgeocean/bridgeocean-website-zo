@@ -33,6 +33,9 @@ export default function ContactPage() {
     setSubmitMessage("")
 
     try {
+      console.log("Form data being sent:", formData)
+      console.log("Web3Forms key exists:", !!process.env.NEXT_PUBLIC_WEB3FORMS_KEY)
+
       const response = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         headers: {
@@ -40,7 +43,7 @@ export default function ContactPage() {
           Accept: "application/json",
         },
         body: JSON.stringify({
-          access_key: "5646250a-18d1-4d84-a6be-2d4e7f57605c",
+          access_key: "5646250a-18d1-4d84-a6be-2d4e7f57605c", // Hardcoded as backup
           name: `${formData.firstName} ${formData.lastName}`,
           email: formData.email,
           phone: formData.phone,
