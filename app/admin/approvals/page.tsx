@@ -32,7 +32,9 @@ export default function ApprovalsPage() {
   const handleApproval = (userId: string, action: "approve" | "reject") => {
     // Update pending approvals
     const updatedPending = pendingUsers.map((user) =>
-      user.id === userId ? { ...user, status: action === "approve" ? "approved" : "rejected" } : user,
+      user.id === userId
+        ? { ...user, status: action === "approve" ? ("approved" as const) : ("rejected" as const) }
+        : user,
     )
     setPendingUsers(updatedPending)
     localStorage.setItem("pendingApprovals", JSON.stringify(updatedPending))
