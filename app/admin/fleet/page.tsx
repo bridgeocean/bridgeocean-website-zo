@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { MainNav } from "@/components/main-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -18,7 +17,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Car, Plus, Edit, Trash2, Eye, Upload } from "lucide-react"
+import { Car, Plus, Edit, Trash2, Eye, Upload, ArrowLeft } from "lucide-react"
+import Link from "next/link"
 
 // Sample fleet data - replace with your actual vehicles
 const initialFleet = [
@@ -95,7 +95,17 @@ export default function FleetManagementPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <MainNav />
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center">
+          <Link href="/admin-dashboard">
+            <Button variant="ghost" size="sm" className="mr-4">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </Link>
+          <h1 className="text-lg font-semibold">Fleet Management</h1>
+        </div>
+      </div>
       <div className="flex-1 space-y-4 p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Fleet Management</h2>

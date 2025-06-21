@@ -35,9 +35,9 @@ export default function AdminLogin() {
       }
       localStorage.setItem("user", JSON.stringify(adminUser))
 
-      // Small delay to ensure localStorage is set
+      // Redirect to admin dashboard instead of regular dashboard
       setTimeout(() => {
-        router.push("/dashboard")
+        router.push("/admin-dashboard")
       }, 100)
     } else {
       setError("Invalid password. Please try again.")

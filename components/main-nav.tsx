@@ -1,110 +1,92 @@
 "use client"
 
+import * as React from "react"
 import Link from "next/link"
-import Image from "next/image"
+import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Menu } from "lucide-react"
 import { ModeToggle } from "@/components/mode-toggle"
-import { UserNav } from "@/components/user-nav"
-import { Menu, X } from "lucide-react"
-import { useState } from "react"
+import Image from "next/image"
 
-export function MainNav() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
+const navigation = [
+  { name: "Nexus Emergency", href: "/nexus" },
+  { name: "Charter Services", href: "/charter" },
+  { name: "Partner With Us", href: "/charter/partner" },
+  { name: "About", href: "/about" },
+  { name: "Contact", href: "/contact" },
+]
+
+export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
+  const pathname = usePathname()
+  const [open, setOpen] = React.useState(false)
 
   return (
     <div className="border-b">
-      <div className="flex h-16 items-center px-4 container mx-auto">
-        <div className="flex items-center space-x-4">
-          <Link href="/" className="flex items-center space-x-3">
-            <Image
-              src="/images/bridgeocean-logo.jpg"
-              alt="Bridgeocean Logo"
-              width={40}
-              height={40}
-              className="h-10 w-auto"
-            />
-            <span className="text-xl font-bold">Bridgeocean</span>
-          </Link>
-        </div>
+      <div className="flex h-16 items-center px-4">
+        <Link href="/" className="flex items-center space-x-2">
+          <Image src="/images/bridgeocean-logo.jpg" alt="Bridgeocean" width={40} height={40} className="rounded-full" />
+          <span className="font-bold text-xl">Bridgeocean</span>
+        </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium ml-6">
-          <Link href="/nexus" className="transition-colors hover:text-foreground/80 text-foreground/60">
-            Nexus Emergency
-          </Link>
-          <Link href="/charter" className="transition-colors hover:text-foreground/80 text-foreground/60">
-            Charter Services
-          </Link>
-          <Link href="/charter/partner" className="transition-colors hover:text-foreground/80 text-foreground/60">
-            Partner With Us
-          </Link>
-          <Link href="/about" className="transition-colors hover:text-foreground/80 text-foreground/60">
-            About
-          </Link>
-          <Link href="/contact" className="transition-colors hover:text-foreground/80 text-foreground/60">
-            Contact
-          </Link>
+        <nav className={cn("hidden md:flex items-center space-x-4 lg:space-x-6 mx-6", className)} {...props}>
+          {navigation.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "text-sm font-medium transition-colors hover:text-primary",
+                pathname === item.href ? "text-black dark:text-white" : "text-muted-foreground",
+              )}
+            >
+              {item.name}
+            </Link>
+          ))}
         </nav>
 
-        {/* Mobile Menu Button */}
-        <div className="md:hidden ml-auto">
-          <Button variant="ghost" size="sm" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-        </div>
+        <div className="ml-auto flex items-center space-x-2">
+          {/* Mobile Navigation */}
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+              <div className="flex flex-col space-y-4 mt-4">
+                <Link href="/" className="flex items-center space-x-2 mb-4">
+                  <Image
+                    src="/images/bridgeocean-logo.jpg"
+                    alt="Bridgeocean"
+                    width={32}
+                    height={32}
+                    className="rounded-full"
+                  />
+                  <span className="font-bold text-xl">Bridgeocean</span>
+                </Link>
+                {navigation.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "text-lg font-medium transition-colors hover:text-primary py-2",
+                      pathname === item.href ? "text-black dark:text-white" : "text-muted-foreground",
+                    )}
+                    onClick={() => setOpen(false)}
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+              </div>
+            </SheetContent>
+          </Sheet>
 
-        <div className="ml-auto hidden md:flex items-center space-x-4">
           <ModeToggle />
-          <UserNav />
         </div>
       </div>
-
-      {/* Mobile Navigation */}
-      {isMenuOpen && (
-        <div className="md:hidden border-t bg-background">
-          <nav className="flex flex-col space-y-2 p-4">
-            <Link
-              href="/nexus"
-              className="text-sm font-medium transition-colors hover:text-foreground/80 text-foreground/60 py-2"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Nexus Emergency
-            </Link>
-            <Link
-              href="/charter"
-              className="text-sm font-medium transition-colors hover:text-foreground/80 text-foreground/60 py-2"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Charter Services
-            </Link>
-            <Link
-              href="/charter/partner"
-              className="text-sm font-medium transition-colors hover:text-foreground/80 text-foreground/60 py-2"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Partner With Us
-            </Link>
-            <Link
-              href="/about"
-              className="text-sm font-medium transition-colors hover:text-foreground/80 text-foreground/60 py-2"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              About
-            </Link>
-            <Link
-              href="/contact"
-              className="text-sm font-medium transition-colors hover:text-foreground/80 text-foreground/60 py-2"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Contact
-            </Link>
-            <div className="flex items-center space-x-4 pt-2">
-              <ModeToggle />
-              <UserNav />
-            </div>
-          </nav>
-        </div>
-      )}
     </div>
   )
 }

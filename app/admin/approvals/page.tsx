@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle, XCircle, Clock, User, Building, Briefcase, MessageSquare } from "lucide-react"
 import { DashboardHeader } from "@/components/dashboard-header"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 
 interface PendingUser {
   id: string
@@ -55,6 +57,17 @@ export default function ApprovalsPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <DashboardHeader />
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center">
+          <Link href="/admin-dashboard">
+            <Button variant="ghost" size="sm" className="mr-4">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </Link>
+          <h1 className="text-lg font-semibold">User Approvals</h1>
+        </div>
+      </div>
       <div className="flex-1 space-y-4 p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
           <div>
