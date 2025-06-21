@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Ambulance, MapPin, Clock, AlertCircle, CheckCircle, User } from "lucide-react"
-import { getEmergencyRequests } from "@/lib/actions"
+import { getEmergencyRequests } from "@/lib/nexus-actions"
 
 export default function Dashboard() {
   const [requests, setRequests] = useState([])
@@ -95,7 +95,7 @@ export default function Dashboard() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <h1 className="text-3xl font-bold">Nexus Dashboard</h1>
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-500">Welcome, Admin</span>
           <Button variant="outline" size="sm">
