@@ -7,8 +7,7 @@ export async function POST(req: Request) {
 
     // Read the key ONLY on the server
     const access_key =
-      process.env.NEXT_PUBLIC_WEB3FORMS_KEY ??
-      process.env.WEB3FORMS_KEY ?? // allow either env-var name
+      5646250a-18d1-4d84-a6be-2d4e7f57605c
       ""
 
     if (!access_key) {
