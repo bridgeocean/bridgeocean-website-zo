@@ -1,284 +1,253 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { DashboardHeader } from "@/components/dashboard-header"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Ambulance, MapPin, Clock, AlertCircle, CheckCircle, User } from "lucide-react"
-import { getEmergencyRequests } from "@/lib/actions"
+import { CalendarDays, Car, Users, UserPlus, Settings, Plus } from "lucide-react"
+import { CharterBookings } from "./components/charter-bookings"
+import { FleetVehicles } from "./components/fleet-vehicles"
+import { PartnerRegistrations } from "./components/partner-registrations"
+import Link from "next/link"
+import { supabase, isSupabaseConfigured } from "@/lib/supabase"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
-export default function Dashboard() {
-  const [requests, setRequests] = useState([])
+export default function DashboardPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [stats, setStats] = useState({
+    totalBookings: 0,
+    totalVehicles: 0,
+    totalPartners: 0,
+    pendingPartners: 0,
+  })
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
-    const fetchRequests = async () => {
-      try {
-        const data = await getEmergencyRequests()
-        setRequests(data)
-      } catch (error) {
-        console.error("Failed to fetch requests:", error)
-      } finally {
-        setLoading(false)
-      }
+    // Check authentication
+    const authStatus = localStorage.getItem("bridgeoceanAdminAuth")
+    if (authStatus === "true") {
+      setIsAuthenticated(true)
+      loadDashboardStats()
+    } else {
+      router.push("/admin-login")
     }
+  }, [router])
 
-    fetchRequests()
+  const loadDashboardStats = async () => {
+    try {
+      setLoading(true)
 
-    // For demo purposes, let's add some mock data
-    setRequests([
-      {
-        id: "EM-123456",
-        name: "John Doe",
-        phone: "08012345678",
-        emergencyType: "accident",
-        description: "Car accident on Lekki Expressway",
-        status: "pending",
-        createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 minutes ago
-        location: { lat: 6.4281, lng: 3.4219 },
-      },
-      {
-        id: "EM-123457",
-        name: "Jane Smith",
-        phone: "08087654321",
-        emergencyType: "medical",
-        description: "Severe chest pain",
-        status: "dispatched",
-        createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 minutes ago
-        location: { lat: 6.455, lng: 3.3841 },
-      },
-      {
-        id: "EM-123458",
-        name: "Robert Johnson",
-        phone: "08023456789",
-        emergencyType: "fire",
-        description: "Building fire at Victoria Island",
-        status: "completed",
-        createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(), // 1 hour ago
-        location: { lat: 6.4281, lng: 3.4219 },
-      },
-    ])
-    setLoading(false)
-  }, [])
+      if (!isSupabaseConfigured()) {
+        // Demo data when Supabase is not configured
+        setStats({
+          totalBookings: 18,
+          totalVehicles: 12,
+          totalPartners: 8,
+          pendingPartners: 3,
+        })
+        setLoading(false)
+        return
+      }
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "pending":
-        return (
-          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
-            Pending
-          </Badge>
-        )
-      case "dispatched":
-        return (
-          <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
-            Dispatched
-          </Badge>
-        )
-      case "completed":
-        return (
-          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
-            Completed
-          </Badge>
-        )
-      default:
-        return <Badge variant="outline">Unknown</Badge>
+      // Load real data from Supabase
+      const [bookingsResult, vehiclesResult, partnersResult] = await Promise.allSettled([
+        supabase.from("charter_bookings").select("id", { count: "exact" }),
+        supabase.from("fleet_vehicles").select("id", { count: "exact" }),
+        supabase.from("partner_registrations").select("id, status", { count: "exact" }),
+      ])
+
+      let totalBookings = 0
+      let totalVehicles = 0
+      let totalPartners = 0
+      let pendingPartners = 0
+
+      // Handle bookings result
+      if (bookingsResult.status === "fulfilled" && !bookingsResult.value?.error) {
+        totalBookings = bookingsResult.value.count || bookingsResult.value.data?.length || 0
+      }
+
+      // Handle vehicles result
+      if (vehiclesResult.status === "fulfilled" && !vehiclesResult.value?.error) {
+        totalVehicles = vehiclesResult.value.count || vehiclesResult.value.data?.length || 0
+      }
+
+      // Handle partners result
+      if (partnersResult.status === "fulfilled" && !partnersResult.value?.error) {
+        const partners = partnersResult.value.data || []
+        totalPartners = partners.length
+        pendingPartners = partners.filter((p) => p.status === "pending").length
+      }
+
+      setStats({
+        totalBookings,
+        totalVehicles,
+        totalPartners,
+        pendingPartners,
+      })
+    } catch (error) {
+      console.error("Error loading dashboard stats:", error)
+      // Fallback to demo data on any error
+      setStats({
+        totalBookings: 18,
+        totalVehicles: 12,
+        totalPartners: 8,
+        pendingPartners: 3,
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
-  const formatTime = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p>Loading dashboard...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">Welcome, Admin</span>
-          <Button variant="outline" size="sm">
-            Logout
-          </Button>
+    <div className="flex min-h-screen flex-col">
+      <DashboardHeader />
+      <div className="flex-1 space-y-4 p-8 pt-6">
+        <div className="flex items-center justify-between space-y-2">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Charter & Partner Dashboard</h2>
+            <p className="text-muted-foreground">Manage charter bookings, fleet vehicles, and partner registrations</p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Link href="/charter/book">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                New Booking
+              </Button>
+            </Link>
+            <Link href="/dashboard/settings">
+              <Button variant="outline">
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </Button>
+            </Link>
+          </div>
         </div>
+
+        {!isSupabaseConfigured() && (
+          <Alert>
+            <Car className="h-4 w-4" />
+            <AlertDescription>
+              Database not configured. Showing demo data. Add your Supabase environment variables to see live data.
+              <br />
+              <strong>Required:</strong> NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Key Metrics */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Charter Bookings</CardTitle>
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {loading ? <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div> : stats.totalBookings}
+              </div>
+              <p className="text-xs text-muted-foreground">Total bookings</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Fleet Vehicles</CardTitle>
+              <Car className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {loading ? <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div> : stats.totalVehicles}
+              </div>
+              <p className="text-xs text-muted-foreground">Available vehicles</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Partners</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {loading ? <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div> : stats.totalPartners}
+              </div>
+              <p className="text-xs text-muted-foreground">Registered partners</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Partners</CardTitle>
+              <UserPlus className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {loading ? <div className="animate-pulse bg-gray-200 h-8 w-16 rounded"></div> : stats.pendingPartners}
+              </div>
+              <p className="text-xs text-muted-foreground">Awaiting approval</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content Tabs */}
+        <Tabs defaultValue="bookings" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="bookings">Charter Bookings</TabsTrigger>
+            <TabsTrigger value="vehicles">Fleet Vehicles</TabsTrigger>
+            <TabsTrigger value="partners">Partner Registrations</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="bookings" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Charter Bookings</CardTitle>
+                <CardDescription>Manage all charter service bookings</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <CharterBookings />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="vehicles" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Fleet Vehicles</CardTitle>
+                <CardDescription>Manage your charter vehicle fleet</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FleetVehicles />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="partners" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Partner Registrations</CardTitle>
+                <CardDescription>Manage partner applications and registrations</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PartnerRegistrations />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Total Requests</p>
-                <h3 className="text-3xl font-bold">{requests.length}</h3>
-              </div>
-              <div className="bg-red-100 p-3 rounded-full">
-                <AlertCircle className="h-6 w-6 text-red-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Active Dispatches</p>
-                <h3 className="text-3xl font-bold">{requests.filter((r) => r.status === "dispatched").length}</h3>
-              </div>
-              <div className="bg-blue-100 p-3 rounded-full">
-                <Ambulance className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Completed</p>
-                <h3 className="text-3xl font-bold">{requests.filter((r) => r.status === "completed").length}</h3>
-              </div>
-              <div className="bg-green-100 p-3 rounded-full">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Emergency Requests</CardTitle>
-          <CardDescription>Manage and respond to emergency requests</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="all">
-            <TabsList className="mb-4">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="pending">Pending</TabsTrigger>
-              <TabsTrigger value="dispatched">Dispatched</TabsTrigger>
-              <TabsTrigger value="completed">Completed</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="all">
-              {loading ? (
-                <div className="text-center py-8">Loading...</div>
-              ) : requests.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">No emergency requests found</div>
-              ) : (
-                <div className="space-y-4">
-                  {requests.map((request) => (
-                    <Card key={request.id}>
-                      <CardContent className="p-4">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div className="flex items-start gap-3">
-                            {request.emergencyType === "accident" && (
-                              <div className="bg-red-100 p-2 rounded-full">
-                                <AlertCircle className="h-5 w-5 text-red-600" />
-                              </div>
-                            )}
-                            {request.emergencyType === "medical" && (
-                              <div className="bg-blue-100 p-2 rounded-full">
-                                <Ambulance className="h-5 w-5 text-blue-600" />
-                              </div>
-                            )}
-                            {request.emergencyType === "fire" && (
-                              <div className="bg-orange-100 p-2 rounded-full">
-                                <AlertCircle className="h-5 w-5 text-orange-600" />
-                              </div>
-                            )}
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-medium">{request.id}</h4>
-                                {getStatusBadge(request.status)}
-                              </div>
-                              <p className="text-sm text-gray-600">{request.description}</p>
-                              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-gray-500">
-                                <div className="flex items-center">
-                                  <User className="h-3 w-3 mr-1" />
-                                  {request.name}
-                                </div>
-                                <div className="flex items-center">
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  {formatTime(request.createdAt)}
-                                </div>
-                                <div className="flex items-center">
-                                  <MapPin className="h-3 w-3 mr-1" />
-                                  {request.location.lat.toFixed(4)}, {request.location.lng.toFixed(4)}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex gap-2 self-end md:self-center">
-                            {request.status === "pending" && <Button size="sm">Dispatch</Button>}
-                            {request.status === "dispatched" && (
-                              <Button size="sm" variant="outline">
-                                Track
-                              </Button>
-                            )}
-                            <Button size="sm" variant="outline">
-                              View Details
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="pending">
-              <div className="space-y-4">
-                {requests
-                  .filter((request) => request.status === "pending")
-                  .map((request) => (
-                    <Card key={request.id}>
-                      <CardContent className="p-4">
-                        {/* Same content as above, filtered for pending */}
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div className="flex items-start gap-3">
-                            <div className="bg-red-100 p-2 rounded-full">
-                              <AlertCircle className="h-5 w-5 text-red-600" />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-medium">{request.id}</h4>
-                                {getStatusBadge(request.status)}
-                              </div>
-                              <p className="text-sm text-gray-600">{request.description}</p>
-                              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-gray-500">
-                                <div className="flex items-center">
-                                  <User className="h-3 w-3 mr-1" />
-                                  {request.name}
-                                </div>
-                                <div className="flex items-center">
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  {formatTime(request.createdAt)}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex gap-2 self-end md:self-center">
-                            <Button size="sm">Dispatch</Button>
-                            <Button size="sm" variant="outline">
-                              View Details
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-              </div>
-            </TabsContent>
-
-            {/* Similar content for other tabs */}
-            <TabsContent value="dispatched">{/* Filtered content for dispatched requests */}</TabsContent>
-
-            <TabsContent value="completed">{/* Filtered content for completed requests */}</TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
     </div>
   )
 }
