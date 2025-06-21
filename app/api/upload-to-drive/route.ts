@@ -48,6 +48,8 @@ export async function POST(request: NextRequest) {
       uploadedFileName: fileName,
       s3Key: uploadResult.key,
       s3Url: uploadResult.url,
+      folderPath: uploadResult.folderPath,
+      location: `S3 Bucket: ${uploadResult.bucket}/${uploadResult.folderPath}`,
     })
   } catch (error) {
     console.error("Upload error:", error)

@@ -1,47 +1,35 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3"
-
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || "us-east-1",
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-})
-
-const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || "bridgeocean-partner-documents"
+import { listDocumentsByType } from "@/lib/aws-s3"
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const documentType = searchParams.get("type")
 
-    const command = new ListObjectsV2Command({
-      Bucket: BUCKET_NAME,
-      Prefix: documentType ? `${documentType}/` : undefined,
-      MaxKeys: 100,
-    })
+    if (!documentType) {
+      return NextResponse.json({ error: "Document type is required" }, { status: 400 })
+    }
 
-    const result = await s3Client.send(command)
+    const documents = await listDocumentsByType(documentType)
 
-    const documents =
-      result.Contents?.map((object) => ({
-        key: object.Key,
-        size: object.Size,
-        lastModified: object.LastModified,
-        url: `https://${BUCKET_NAME}.s3.amazonaws.com/${object.Key}`,
-      })) || []
+    const formattedDocuments = documents.map((doc) => ({
+      key: doc.Key,
+      size: doc.Size,
+      lastModified: doc.LastModified,
+      fileName: doc.Key?.split("/").pop(),
+    }))
 
     return NextResponse.json({
       success: true,
-      documents,
-      count: documents.length,
+      documentType,
+      count: formattedDocuments.length,
+      documents: formattedDocuments,
     })
   } catch (error) {
-    console.error("Error listing documents:", error)
+    console.error("Error fetching documents:", error)
     return NextResponse.json(
       {
-        error: "Failed to list documents",
+        error: error instanceof Error ? error.message : "Failed to fetch documents",
       },
       { status: 500 },
     )
