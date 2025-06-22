@@ -218,132 +218,179 @@ export function AIInvoiceGenerator() {
     }
   }
 
-  // Fixed PDF download function
+  // Fixed PDF download function with proper currency and formatting
   const handleDownloadPDF = async () => {
     if (!invoiceData) return
 
     setIsGeneratingPDF(true)
     try {
-      // Create HTML content for PDF
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Invoice ${invoiceData.invoiceNumber}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 40px; }
-            .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-            .logo { width: 80px; height: 80px; }
-            .invoice-title { font-size: 32px; font-weight: bold; }
-            .invoice-number { font-size: 18px; color: #2563eb; font-weight: bold; }
-            .company-info { text-align: right; }
-            .bill-to { margin: 20px 0; }
-            .dates { display: flex; justify-content: space-between; margin: 20px 0; }
-            .items-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            .items-table th, .items-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-            .items-table th { background-color: #f5f5f5; }
-            .totals { margin-left: auto; width: 300px; }
-            .total-row { display: flex; justify-content: space-between; padding: 5px 0; }
-            .total-final { font-weight: bold; font-size: 18px; border-top: 2px solid #000; padding-top: 10px; }
-            .notes { margin-top: 30px; }
-            .terms { margin-top: 20px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div>
-              <div class="invoice-title">INVOICE</div>
-              <div class="invoice-number">#${invoiceData.invoiceNumber}</div>
-            </div>
-            <div class="company-info">
-              <h2>BridgeOcean Limited</h2>
-              <p>Premium Charter Services</p>
-            </div>
-          </div>
+      // Dynamically import jsPDF
+      const { jsPDF } = await import("jspdf")
 
-          <div class="bill-to">
-            <h3>Bill To:</h3>
-            <p style="font-size: 18px;">${invoiceData.customerName}</p>
-          </div>
+      const doc = new jsPDF()
 
-          <div class="dates">
-            <div><strong>Service Date:</strong> ${invoiceData.serviceDate}</div>
-            <div><strong>Due Date:</strong> ${invoiceData.dueDate}</div>
-            <div><strong>Balance Due:</strong> ₦${invoiceData.balanceDue.toLocaleString()}</div>
-          </div>
+      // Helper function for currency formatting in PDF
+      const formatPDFCurrency = (amount: number) => {
+        return `NGN ${amount.toLocaleString()}`
+      }
 
-          <table class="items-table">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Quantity</th>
-                <th>Rate</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>${invoiceData.vehicle}</td>
-                <td>${invoiceData.quantity}</td>
-                <td>₦${invoiceData.rate.toLocaleString()}</td>
-                <td>₦${invoiceData.subtotal.toLocaleString()}</td>
-              </tr>
-            </tbody>
-          </table>
+      // Add logo to PDF - force load with base64 fallback
+      try {
+        const canvas = document.createElement("canvas")
+        const ctx = canvas.getContext("2d")
+        canvas.width = 60
+        canvas.height = 60
 
-          <div class="totals">
-            <div class="total-row">
-              <span>Subtotal:</span>
-              <span>₦${invoiceData.subtotal.toLocaleString()}</span>
-            </div>
-            <div class="total-row">
-              <span>VAT (7%):</span>
-              <span>₦${invoiceData.vat.toLocaleString()}</span>
-            </div>
-            <div class="total-row total-final">
-              <span>Total:</span>
-              <span>₦${invoiceData.total.toLocaleString()}</span>
-            </div>
-            <div class="total-row">
-              <span>Amount Paid:</span>
-              <span>₦${invoiceData.amountPaid.toLocaleString()}</span>
-            </div>
-            <div class="total-row total-final">
-              <span>Balance Due:</span>
-              <span>₦${invoiceData.balanceDue.toLocaleString()}</span>
-            </div>
-          </div>
+        const logoImg = new Image()
+        logoImg.crossOrigin = "anonymous"
 
-          <div class="notes">
-            <h4>Notes:</h4>
-            <p>${invoiceData.notes}</p>
-          </div>
+        await new Promise((resolve, reject) => {
+          logoImg.onload = () => {
+            ctx.drawImage(logoImg, 0, 0, 60, 60)
+            const dataURL = canvas.toDataURL("image/jpeg", 0.8)
+            doc.addImage(dataURL, "JPEG", 20, 15, 20, 20)
+            resolve(true)
+          }
+          logoImg.onerror = () => {
+            // Create a simple text logo if image fails
+            doc.setFontSize(12)
+            doc.setTextColor(37, 99, 235)
+            doc.text("Bridgeocean", 20, 25)
+            doc.text("LIMITED", 20, 32)
+            resolve(true)
+          }
+          logoImg.src = "/images/bridgeocean-logo.jpg"
+          setTimeout(() => logoImg.onerror(), 2000)
+        })
+      } catch (error) {
+        // Fallback text logo
+        doc.setFontSize(12)
+        doc.setTextColor(37, 99, 235)
+        doc.text("Bridgeocean", 20, 25)
+        doc.text("LIMITED", 20, 32)
+      }
 
-          <div class="terms">
-            <h4>Terms:</h4>
-            <p>${invoiceData.terms}</p>
-          </div>
-        </body>
-        </html>
-      `
+      // Header
+      doc.setFontSize(28)
+      doc.setTextColor(0, 0, 0)
+      doc.text("INVOICE", 50, 25)
 
-      // Create and download PDF
-      const blob = new Blob([htmlContent], { type: "text/html" })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.href = url
-      link.download = `Invoice-${invoiceData.invoiceNumber}-BridgeOcean.html`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
+      doc.setFontSize(16)
+      doc.setTextColor(37, 99, 235) // Blue color
+      doc.text(`#${invoiceData.invoiceNumber}`, 50, 35)
+
+      // Company info (right aligned)
+      doc.setFontSize(18)
+      doc.setTextColor(0, 0, 0)
+      doc.text("Bridgeocean Limited", 190, 25, { align: "right" })
+      doc.setFontSize(12)
+      doc.text("Premium Charter Services", 190, 35, { align: "right" })
+
+      // Separator line
+      doc.setDrawColor(200, 200, 200)
+      doc.line(20, 45, 190, 45)
+
+      // Bill To
+      doc.setFontSize(14)
+      doc.setTextColor(0, 0, 0)
+      doc.text("Bill To:", 20, 60)
+      doc.setFontSize(16)
+      doc.text(invoiceData.customerName, 20, 70)
+
+      // Dates and Balance (right side)
+      doc.setFontSize(12)
+      doc.text("Service Date:", 120, 60)
+      doc.text(invoiceData.serviceDate, 175, 60)
+
+      doc.text("Due Date:", 120, 70)
+      doc.text(invoiceData.dueDate, 175, 70)
+
+      doc.setFontSize(14)
+      doc.setTextColor(37, 99, 235)
+      doc.text("Balance Due:", 120, 85)
+      doc.text(formatPDFCurrency(invoiceData.balanceDue), 165, 85)
+
+      // Table header background
+      doc.setFillColor(245, 245, 245)
+      doc.rect(20, 100, 170, 10, "F")
+
+      // Table header
+      doc.setFontSize(12)
+      doc.setTextColor(0, 0, 0)
+      doc.text("Item", 25, 107)
+      doc.text("Qty", 100, 107)
+      doc.text("Rate", 125, 107)
+      doc.text("Amount", 165, 107)
+
+      // Table content
+      doc.setFontSize(11)
+      const itemText = doc.splitTextToSize(invoiceData.vehicle, 70)
+      doc.text(itemText, 25, 120)
+      doc.text(invoiceData.quantity.toString(), 100, 120)
+      doc.text(formatPDFCurrency(invoiceData.rate), 125, 120)
+      doc.text(formatPDFCurrency(invoiceData.subtotal), 165, 120)
+
+      // Table border
+      doc.setDrawColor(200, 200, 200)
+      doc.rect(20, 100, 170, 30)
+      doc.line(95, 100, 95, 130) // Qty column
+      doc.line(120, 100, 120, 130) // Rate column
+      doc.line(160, 100, 160, 130) // Amount column
+      doc.line(20, 110, 190, 110) // Header separator
+
+      // Totals section
+      const totalsY = 150
+      doc.setFontSize(12)
+
+      doc.text("Subtotal:", 130, totalsY)
+      doc.text(formatPDFCurrency(invoiceData.subtotal), 170, totalsY)
+
+      doc.text("VAT (7%):", 130, totalsY + 10)
+      doc.text(formatPDFCurrency(invoiceData.vat), 170, totalsY + 10)
+
+      // Total line
+      doc.setDrawColor(0, 0, 0)
+      doc.line(130, totalsY + 15, 190, totalsY + 15)
+
+      doc.setFontSize(14)
+      doc.setTextColor(0, 0, 0)
+      doc.text("Total:", 130, totalsY + 25)
+      doc.text(formatPDFCurrency(invoiceData.total), 170, totalsY + 25)
+
+      doc.setFontSize(12)
+      doc.text("Amount Paid:", 130, totalsY + 35)
+      doc.text(formatPDFCurrency(invoiceData.amountPaid), 170, totalsY + 35)
+
+      // Balance Due - highlighted
+      doc.setFontSize(16)
+      doc.setTextColor(37, 99, 235)
+      doc.text("Balance Due:", 130, totalsY + 50)
+      doc.text(formatPDFCurrency(invoiceData.balanceDue), 170, totalsY + 50)
+
+      // Notes section
+      doc.setFontSize(12)
+      doc.setTextColor(0, 0, 0)
+      doc.text("Notes:", 20, totalsY + 70)
+      doc.setFontSize(10)
+      const notesLines = doc.splitTextToSize(invoiceData.notes, 170)
+      doc.text(notesLines, 20, totalsY + 80)
+
+      // Terms section
+      doc.setFontSize(12)
+      doc.text("Terms:", 20, totalsY + 110)
+      doc.setFontSize(10)
+      const termsLines = doc.splitTextToSize(invoiceData.terms, 170)
+      doc.text(termsLines, 20, totalsY + 120)
+
+      // Save the PDF
+      doc.save(`Invoice-${invoiceData.invoiceNumber}-BridgeOcean.pdf`)
 
       toast({
-        title: "Invoice Downloaded",
-        description: `Invoice ${invoiceData.invoiceNumber} has been downloaded successfully`,
+        title: "PDF Downloaded",
+        description: `Invoice ${invoiceData.invoiceNumber} has been downloaded as PDF`,
       })
     } catch (error) {
+      console.error("PDF generation error:", error)
       toast({
         title: "Error generating PDF",
         description: "Please try again",
@@ -465,7 +512,7 @@ Customer: Book it now, I'll pay full amount`,
                 </div>
               </div>
               <div className="text-right">
-                <h3 className="font-semibold text-lg">BridgeOcean Limited</h3>
+                <h3 className="font-semibold text-lg">Bridgeocean Limited</h3>
                 <p className="text-sm text-muted-foreground">Premium Charter Services</p>
               </div>
             </div>
@@ -563,7 +610,7 @@ Customer: Book it now, I'll pay full amount`,
                 ) : (
                   <>
                     <Download className="mr-2 h-4 w-4" />
-                    Download Invoice (HTML/PDF)
+                    Download Invoice (PDF)
                   </>
                 )}
               </Button>
