@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^0.0.66",
-    "@ai-sdk/xai": "^0.0.10",
+    "@ai-sdk/xai": "^0.0.9",
     "@hookform/resolvers": "^3.9.0",
     "@neondatabase/serverless": "^0.10.1",
     "@radix-ui/react-accordion": "latest",
