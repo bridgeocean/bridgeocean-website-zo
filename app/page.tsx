@@ -31,12 +31,14 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <a href="https://app.bridgeocean.xyz" target="_blank" rel="noopener noreferrer">
-                    <Button size="lg" className="gap-1.5 bg-red-600 hover:bg-red-700">
-                      <Satellite className="h-4 w-4" />
-                      Nexus Emergency Logistics
-                    </Button>
-                  </a>
+                  <Button
+                    size="lg"
+                    className="gap-1.5 bg-red-600 hover:bg-red-700"
+                    onClick={() => window.open("https://app.bridgeocean.xyz", "_blank")}
+                  >
+                    <Satellite className="h-4 w-4" />
+                    Nexus Emergency Logistics
+                  </Button>
                   <Link href="/charter/book">
                     <Button size="lg" variant="outline">
                       Charter Services
@@ -105,9 +107,12 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="flex space-x-2 pt-4">
-                    <a href="https://app.bridgeocean.xyz" target="_blank" rel="noopener noreferrer">
-                      <Button className="bg-red-600 hover:bg-red-700">Learn More</Button>
-                    </a>
+                    <Button
+                      className="bg-red-600 hover:bg-red-700"
+                      onClick={() => window.open("https://app.bridgeocean.xyz", "_blank")}
+                    >
+                      Learn More
+                    </Button>
                     <Link href="/contact">
                       <Button variant="outline">Partner With Us</Button>
                     </Link>
@@ -251,11 +256,13 @@ export default function Home() {
                 </p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                <a href="https://app.bridgeocean.xyz" target="_blank" rel="noopener noreferrer">
-                  <Button size="lg" className="bg-red-600 hover:bg-red-700">
-                    Emergency Logistics Partnership
-                  </Button>
-                </a>
+                <Button
+                  size="lg"
+                  className="bg-red-600 hover:bg-red-700"
+                  onClick={() => window.open("https://app.bridgeocean.xyz", "_blank")}
+                >
+                  Emergency Logistics Partnership
+                </Button>
                 <Link href="/charter/partner">
                   <Button size="lg" variant="outline">
                     Register Your Vehicle
