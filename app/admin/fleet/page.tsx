@@ -62,44 +62,13 @@ export default function FleetManagementPage() {
   })
 
   const handleAddVehicle = () => {
-    // Validate required fields
-    if (!newVehicle.name.trim()) {
-      alert("Please enter vehicle name")
-      return
-    }
-    if (!newVehicle.category) {
-      alert("Please select a category")
-      return
-    }
-    if (!newVehicle.year.trim()) {
-      alert("Please enter year")
-      return
-    }
-    if (!newVehicle.passengers.trim()) {
-      alert("Please enter number of passengers")
-      return
-    }
-    if (!newVehicle.pricePerHour.trim()) {
-      alert("Please enter price per hour")
-      return
-    }
-
     const vehicle = {
       id: Date.now().toString(),
-      name: newVehicle.name.trim(),
-      category: newVehicle.category,
-      year: newVehicle.year.trim(),
-      passengers: Number.parseInt(newVehicle.passengers),
-      pricePerHour: Number.parseInt(newVehicle.pricePerHour),
+      ...newVehicle,
       status: "Available",
-      features: newVehicle.features || [],
-      description: newVehicle.description || "",
       image: "/placeholder.svg?height=200&width=300",
     }
-
-    setFleet((prevFleet) => [...prevFleet, vehicle])
-
-    // Reset form
+    setFleet([...fleet, vehicle])
     setNewVehicle({
       name: "",
       category: "",
@@ -109,8 +78,6 @@ export default function FleetManagementPage() {
       features: [],
       description: "",
     })
-
-    // Close dialog
     setIsAddingVehicle(false)
   }
 

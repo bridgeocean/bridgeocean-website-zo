@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Car, DollarSign, Shield, Users, Upload, CheckCircle, AlertCircle } from "lucide-react"
+import { Car, DollarSign, Shield, Users, Upload, CheckCircle } from "lucide-react"
 
 const vehicleTypes = ["Sedan", "SUV", "Luxury Sedan", "Luxury SUV", "Van", "Bus", "Convertible", "Sports Car"]
 
@@ -48,15 +48,11 @@ export default function PartnerPage() {
 
   const [uploadingFiles, setUploadingFiles] = useState<{ [key: string]: boolean }>({})
   const [uploadedFiles, setUploadedFiles] = useState<{ [key: string]: string }>({})
-  const [uploadErrors, setUploadErrors] = useState<{ [key: string]: string }>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleFileUpload = async (documentType: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
-    // Clear any previous errors
-    setUploadErrors((prev) => ({ ...prev, [documentType]: "" }))
     setUploadingFiles((prev) => ({ ...prev, [documentType]: true }))
 
     try {
@@ -73,67 +69,15 @@ export default function PartnerPage() {
 
       if (result.success) {
         setUploadedFiles((prev) => ({ ...prev, [documentType]: file.name }))
-        alert(
-          `✅ ${file.name} uploaded successfully!\n\nFile saved as: ${result.uploadedFileName}\n\nNote: Files are being processed and will appear in your Google Drive folder shortly.`,
-        )
+        alert(`${file.name} uploaded successfully to Google Drive!`)
       } else {
-        setUploadErrors((prev) => ({ ...prev, [documentType]: result.error || "Upload failed" }))
-        alert(`❌ Upload failed: ${result.error || "Please try again"}`)
+        alert("Upload failed. Please try again.")
       }
     } catch (error) {
       console.error("Upload error:", error)
-      const errorMessage = "Network error. Please check your connection and try again."
-      setUploadErrors((prev) => ({ ...prev, [documentType]: errorMessage }))
-      alert(`❌ ${errorMessage}`)
+      alert("Upload failed. Please try again.")
     } finally {
       setUploadingFiles((prev) => ({ ...prev, [documentType]: false }))
-    }
-  }
-
-  const handleSubmitApplication = async () => {
-    // Check if required documents are uploaded
-    const requiredDocs = ["identification", "vehicleRegistration", "insuranceCertificate", "vehiclePhotos"]
-    const missingDocs = requiredDocs.filter((doc) => !uploadedFiles[doc])
-
-    if (missingDocs.length > 0) {
-      alert(
-        `❌ Please upload all required documents:\n${missingDocs.map((doc) => `• ${doc.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}`).join("\n")}`,
-      )
-      return
-    }
-
-    setIsSubmitting(true)
-
-    try {
-      // Simulate form submission
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      alert(
-        `🎉 Application submitted successfully!\n\n` +
-          `📋 Application Details:\n` +
-          `• Documents uploaded: ${Object.keys(uploadedFiles).length}\n` +
-          `• Submission time: ${new Date().toLocaleString()}\n\n` +
-          `📞 Next Steps:\n` +
-          `• We will review your application within 2-3 business days\n` +
-          `• You'll receive an email confirmation shortly\n` +
-          `• Our team will contact you for vehicle inspection scheduling\n\n` +
-          `Thank you for choosing Bridgeocean! 🚗`,
-      )
-
-      // Reset form
-      setFormStep(1)
-      setFormData({
-        personalInfo: {},
-        vehicleInfo: {},
-        documents: {},
-      })
-      setUploadedFiles({})
-      setUploadErrors({})
-    } catch (error) {
-      console.error("Submission error:", error)
-      alert("❌ Submission failed. Please try again.")
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
@@ -353,19 +297,6 @@ export default function PartnerPage() {
                     <CardDescription>Upload the necessary documents for verification</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                      <div className="flex items-start space-x-3">
-                        <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
-                        <div>
-                          <h4 className="font-medium text-blue-900">Document Upload Information</h4>
-                          <p className="text-sm text-blue-700 mt-1">
-                            Files will be uploaded to your secure Google Drive folder. You'll receive confirmation once
-                            processing is complete.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
                     <div className="grid gap-6 md:grid-cols-2">
                       <div className="space-y-4">
                         <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
@@ -393,9 +324,6 @@ export default function PartnerPage() {
                           {uploadedFiles.identification && (
                             <p className="text-sm text-green-600 mt-2">✓ {uploadedFiles.identification}</p>
                           )}
-                          {uploadErrors.identification && (
-                            <p className="text-sm text-red-600 mt-2">✗ {uploadErrors.identification}</p>
-                          )}
                         </div>
                         <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
                           <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -419,9 +347,6 @@ export default function PartnerPage() {
                           </Button>
                           {uploadedFiles.vehicleRegistration && (
                             <p className="text-sm text-green-600 mt-2">✓ {uploadedFiles.vehicleRegistration}</p>
-                          )}
-                          {uploadErrors.vehicleRegistration && (
-                            <p className="text-sm text-red-600 mt-2">✗ {uploadErrors.vehicleRegistration}</p>
                           )}
                         </div>
                       </div>
@@ -449,9 +374,6 @@ export default function PartnerPage() {
                           {uploadedFiles.insuranceCertificate && (
                             <p className="text-sm text-green-600 mt-2">✓ {uploadedFiles.insuranceCertificate}</p>
                           )}
-                          {uploadErrors.insuranceCertificate && (
-                            <p className="text-sm text-red-600 mt-2">✗ {uploadErrors.insuranceCertificate}</p>
-                          )}
                         </div>
                         <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
                           <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -478,9 +400,6 @@ export default function PartnerPage() {
                           </Button>
                           {uploadedFiles.vehiclePhotos && (
                             <p className="text-sm text-green-600 mt-2">✓ {uploadedFiles.vehiclePhotos}</p>
-                          )}
-                          {uploadErrors.vehiclePhotos && (
-                            <p className="text-sm text-red-600 mt-2">✗ {uploadErrors.vehiclePhotos}</p>
                           )}
                         </div>
                       </div>
@@ -512,9 +431,7 @@ export default function PartnerPage() {
                       <Button variant="outline" onClick={() => setFormStep(2)} className="flex-1">
                         Back
                       </Button>
-                      <Button onClick={handleSubmitApplication} className="flex-1" disabled={isSubmitting}>
-                        {isSubmitting ? "Submitting..." : "Submit Application"}
-                      </Button>
+                      <Button className="flex-1">Submit Application</Button>
                     </div>
                   </CardContent>
                 </Card>

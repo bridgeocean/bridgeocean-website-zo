@@ -6,12 +6,12 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu } from 'lucide-react'
+import { Menu } from "lucide-react"
 import { ModeToggle } from "@/components/mode-toggle"
 import Image from "next/image"
 
 const navigation = [
-  { name: "Nexus Emergency", href: "https://app.bridgeocean.xyz" },
+  { name: "Nexus Emergency", href: "/nexus" },
   { name: "Charter Services", href: "/charter" },
   { name: "Partner With Us", href: "/charter/partner" },
   { name: "About", href: "/about" },

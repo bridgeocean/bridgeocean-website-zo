@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { MainNav } from "@/components/main-nav"
 import Image from "next/image"
 import Link from "next/link"
-import { Satellite, Calendar, Users, Shield, Clock, Star, Navigation, MapPin } from 'lucide-react'
+import { Satellite, Calendar, Users, Shield, Clock, Star, Navigation, MapPin } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function Home() {
@@ -31,7 +31,7 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Link href="https://app.bridgeocean.xyz">
+                  <Link href="/nexus">
                     <Button size="lg" className="gap-1.5 bg-red-600 hover:bg-red-700">
                       <Satellite className="h-4 w-4" />
                       Nexus Emergency Logistics
@@ -105,7 +105,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="flex space-x-2 pt-4">
-                    <Link href="https://app.bridgeocean.xyz">
+                    <Link href="/nexus">
                       <Button className="bg-red-600 hover:bg-red-700">Learn More</Button>
                     </Link>
                     <Link href="/contact">
@@ -114,6 +114,7 @@ export default function Home() {
                   </div>
                 </CardContent>
               </Card>
+
               <Card className="relative overflow-hidden">
                 <CardHeader className="pb-4">
                   <div className="flex items-center space-x-2">
@@ -176,6 +177,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
+
             <div className="grid gap-8 md:grid-cols-2">
               <Card className="overflow-hidden">
                 <div className="relative h-80 w-full">
@@ -204,6 +206,7 @@ export default function Home() {
                   </div>
                 </CardContent>
               </Card>
+
               <Card className="overflow-hidden">
                 <div className="relative h-80 w-full">
                   <Image src="/images/gmc-final.jpg" alt="GMC Terrain" fill className="object-contain bg-muted" />
@@ -248,7 +251,7 @@ export default function Home() {
                 </p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                <Link href="https://app.bridgeocean.xyz">
+                <Link href="/nexus">
                   <Button size="lg" className="bg-red-600 hover:bg-red-700">
                     Emergency Logistics Partnership
                   </Button>
