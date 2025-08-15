@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
+import Image from "next/image"
 import {
   Satellite,
   MapPin,
@@ -57,6 +58,35 @@ export default function NexusPage() {
                     </Button>
                   </Link>
                 </div>
+
+                {/* Tiny NaijaRescue link (Option A) */}
+                <div className="pt-2">
+                  <Link
+                    href="/nexus/naijarescue"
+                    className="inline-flex items-center gap-2 text-xs text-red-600 hover:text-red-700 hover:underline"
+                  >
+                    <Image
+                      src="/naijarescue-logo.png"
+                      alt="NaijaRescue"
+                      width={16}
+                      height={16}
+                      className="rounded"
+                      priority
+                    />
+                    Open NaijaRescue live dashboard
+                    <svg viewBox="0 0 24 24" className="ml-1 h-3 w-3" aria-hidden="true">
+                      <path
+                        d="M7 12h10m0 0-4-4m4 4-4 4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </Link>
+                </div>
+                {/* End tiny link */}
+
               </div>
               <div className="flex items-center justify-center">
                 <div className="relative h-[450px] w-full">
@@ -71,6 +101,7 @@ export default function NexusPage() {
                   </div>
                 </div>
               </div>
+
             </div>
           </div>
         </section>
