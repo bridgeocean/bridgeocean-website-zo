@@ -1,203 +1,134 @@
 // app/api/ai-extract/route.ts
-export const runtime = "edge";
-export const dynamic = "force-dynamic";
-export const maxDuration = 15;
+import { NextRequest } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-type Extracted = {
-  customerName: string | null;
-  servicePrice: number | null;   // NGN, integer
-  amountPaid: number | null;     // NGN, integer
-  vehicleType: string | null;    // e.g., "GMC Terrain Charter Service"
-  serviceDate: string | null;    // dd/MM/yyyy (UI expects en-GB)
-  duration: string | null;       // e.g., "Full day service"
-  isEmergency: boolean | null;
-  isFirstTimer: boolean | null;
+type ExtractOut = {
+  success: boolean;
+  source?: string;
+  data?: Partial<{
+    customerName: string;
+    vehicleType: string;
+    servicePrice: number;
+    amountPaid: number;
+    serviceDate: string; // dd/mm/yyyy
+    duration: string;
+    isEmergency: boolean;
+    isFirstTimer: boolean;
+  }>;
+  error?: string;
+  debug?: string;
+  availableKeys?: string[];
 };
 
-type Out =
-  | { success: true; source: string; data: Required<Extracted>; debug?: string; availableKeys?: string[] }
-  | { success: false; error: string; debug?: string; availableKeys?: string[] };
-
-function json(o: Out, status = 200) {
+function json(o: unknown, status = 200) {
   return new Response(JSON.stringify(o), {
     status,
     headers: { "content-type": "application/json", "cache-control": "no-store" },
   });
 }
 
-// helpers
-const toInt = (v: any) => {
-  if (v === null || v === undefined) return 0;
-  if (typeof v === "number") return Math.round(v);
-  const s = String(v).replace(/[^0-9]/g, "");
-  return s ? parseInt(s, 10) : 0;
-};
-
-function toGbDate(isoLike: string | null): string {
-  if (!isoLike) return new Date().toLocaleDateString("en-GB");
-  // Accept "YYYY-MM-DD", "DD/MM/YYYY", or raw text; try best-effort
-  const s = String(isoLike).trim();
-  let d: Date | null = null;
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) d = new Date(s + "T00:00:00Z");
-  else if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
-    const [dd, mm, yyyy] = s.split("/").map(Number);
-    d = new Date(Date.UTC(yyyy, mm - 1, dd));
-  } else {
-    const t = Date.parse(s);
-    if (!Number.isNaN(t)) d = new Date(t);
+// basic server-side fallback to sanity-check amounts
+function scanAmounts(chat: string) {
+  const all: number[] = [];
+  const patterns = [
+    /₦\s*(\d{1,3}(?:,\d{3})+)/g,               // ₦100,000
+    /(\d{1,3}(?:,\d{3})+)\s*naira/gi,          // 150,000 naira
+    /(\d+)\s*thousand/gi,                      // 150 thousand
+  ];
+  for (const p of patterns) {
+    let m: RegExpExecArray | null;
+    while ((m = p.exec(chat)) !== null) {
+      let v = parseInt(m[1].replace(/,/g, ""), 10);
+      if (/thousand/i.test(p.source)) v = v * 1000;
+      if (v >= 1000) all.push(v);
+    }
   }
-
-  if (!d || Number.isNaN(d.getTime())) d = new Date();
-  return d.toLocaleDateString("en-GB");
+  return all;
 }
 
-export async function POST(req: Request) {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  const availableKeys = Object.keys(process.env || {}).filter((k) =>
-    /GOOGLE|NR_|NEXT_PUBLIC_/.test(k)
-  );
-
-  if (!apiKey) {
-    return json(
-      {
-        success: false,
-        error: "Missing GOOGLE_GENERATIVE_AI_API_KEY",
-        availableKeys,
-      },
-      500
-    );
-  }
-
-  let body: any;
+export async function POST(req: NextRequest) {
   try {
-    body = await req.json();
-  } catch {
-    return json({ success: false, error: "Invalid JSON" }, 400);
-  }
+    const body = await req.json().catch(() => ({}));
+    const chat: string = body?.chat ?? "";
 
-  const chat: string = (body?.chat || "").toString().trim();
-  if (!chat || chat.length < 10) {
-    return json({ success: false, error: "Empty or too-short chat text" }, 400);
-  }
+    const key = process.env.GOOGLE_GENERATIVE_AI_API_KEY || "";
+    if (!chat.trim()) {
+      return json<ExtractOut>({ success: false, error: "empty chat" }, 400);
+    }
+    if (!key) {
+      return json<ExtractOut>({
+        success: false,
+        error: "No GOOGLE_GENERATIVE_AI_API_KEY configured",
+        availableKeys: Object.keys(process.env || {}),
+      });
+    }
 
-  // Prompt: ask Gemini to return strict JSON
-  const instructions = `
-You extract invoice fields from WhatsApp-style chats.
-Return ONLY strict JSON (no commentary) with this schema:
+    const genAI = new GoogleGenerativeAI(key);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      // Ask for JSON directly
+      generationConfig: { responseMimeType: "application/json" },
+    });
 
+    const prompt = `
+Extract a clean JSON from the WhatsApp conversation below.
+- Only use values that are explicitly implied by the chat.
+- Do NOT invent prices or names.
+- If unknown, omit the field entirely.
+
+Return JSON with these optional keys:
 {
-  "customerName": string | null,
-  "servicePrice": number | null,  // NGN, integer
-  "amountPaid": number | null,    // NGN, integer (0 if not stated)
-  "vehicleType": string | null,   // e.g., "GMC Terrain Charter Service" or "Toyota Camry Charter Service"
-  "serviceDate": string | null,   // "YYYY-MM-DD" if possible; otherwise any parseable date text
-  "duration": string | null,      // e.g., "Full day service" or "10 hours"
-  "isEmergency": boolean | null,
-  "isFirstTimer": boolean | null
+  "customerName": string,
+  "vehicleType": string,
+  "servicePrice": number, // in NGN
+  "amountPaid": number,   // in NGN
+  "serviceDate": "dd/mm/yyyy",
+  "duration": string,
+  "isEmergency": boolean,
+  "isFirstTimer": boolean
 }
 
-Rules:
-- Currency is Nigerian Naira (₦). Convert words like "two hundred thousand" to 200000 if stated.
-- If multiple numbers appear, the LARGEST typical "service price" is the servicePrice;
-  an explicit "deposit", "half", or smaller amount near payment words is amountPaid.
-- If no payment amount is clearly stated, amountPaid = 0.
-- Detect emergency from words like "emergency", "urgent", "right now".
-- Detect first-timer from "first time", "new customer", etc.
-- If you can't find a value, use null.
-
-Now extract from this chat:
----
-${chat}
----
+Conversation:
+"""${chat}"""
 `;
 
-  const url =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=" +
-    encodeURIComponent(apiKey);
+    const r = await model.generateContent({ contents: [{ role: "user", parts: [{ text: prompt }] }] });
+    const text = r.response?.text?.() ?? "";
 
-  const payload = {
-    contents: [{ role: "user", parts: [{ text: instructions }] }],
-    generationConfig: {
-      temperature: 0.2,
-      maxOutputTokens: 512,
-      response_mime_type: "application/json",
-    },
-    // Optional: relax safety so normal business text never blocks
-    safetySettings: [
-      { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-      { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-      { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-      { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-    ],
-  };
+    // The model returns JSON because of responseMimeType, but still parse defensively
+    let data: any = {};
+    try { data = JSON.parse(text); } catch { /* leave empty */ }
 
-  try {
-    const r = await fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    // Normalize numbers
+    if (typeof data?.servicePrice === "string") data.servicePrice = parseInt(data.servicePrice.replace(/[^\d]/g, ""), 10);
+    if (typeof data?.amountPaid === "string")  data.amountPaid  = parseInt(data.amountPaid.replace(/[^\d]/g, ""), 10);
 
-    const raw = await r.text();
-    if (!r.ok) {
-      return json(
-        {
-          success: false,
-          error: `Gemini error ${r.status}: ${raw.slice(0, 200)}`,
-          availableKeys,
-        },
-        500
-      );
+    // If servicePrice is missing/0, try server-side scan
+    const amounts = scanAmounts(chat);
+    if ((!data?.servicePrice || data.servicePrice < 1000) && amounts.length) {
+      data.servicePrice = Math.max(...amounts);
+    }
+    // If amountPaid missing, try smaller amount heuristic
+    if ((data?.amountPaid == null || isNaN(data.amountPaid)) && amounts.length >= 2) {
+      data.amountPaid = Math.min(...amounts);
     }
 
-    let modelJson: any;
-    try {
-      modelJson = JSON.parse(raw);
-    } catch {
-      return json({ success: false, error: "Gemini returned non-JSON body" }, 500);
+    // Very conservative success criteria: servicePrice OR amountPaid OR some field present
+    const hasSomething =
+      (data && Object.keys(data).length > 0) ||
+      (amounts && amounts.length > 0);
+
+    if (!hasSomething) {
+      return json<ExtractOut>({ success: false, error: "nothing extracted", debug: text?.slice?.(0, 200) || "" }, 200);
     }
 
-    // Gemini returns JSON-in-text inside candidates[].content.parts[].text
-    const contentText =
-      modelJson?.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
-
-    let extracted: Extracted;
-    try {
-      extracted = JSON.parse(contentText);
-    } catch {
-      // Sometimes returns already-structured object in the root; try that
-      extracted = modelJson as Extracted;
-    }
-
-    // Normalize and fill defaults for UI component
-    const out: Required<Extracted> = {
-      customerName: extracted.customerName || "Valued Customer",
-      servicePrice: toInt(extracted.servicePrice),
-      amountPaid: toInt(extracted.amountPaid),
-      vehicleType:
-        extracted.vehicleType ||
-        "Charter Service", // UI applies business mapping later
-      serviceDate: toGbDate(extracted.serviceDate),
-      duration: extracted.duration || "Full day service",
-      isEmergency: Boolean(extracted.isEmergency),
-      isFirstTimer: Boolean(extracted.isFirstTimer),
-    };
-
-    const debug = `usage: ${JSON.stringify(modelJson?.usageMetadata || {})}`;
-
-    return json({
+    return json<ExtractOut>({
       success: true,
-      source: "Google Gemini 1.5 Flash",
-      data: out,
-      debug,
-      availableKeys,
+      source: "Google Gemini 1.5 Flash (JSON)",
+      data,
+      debug: text?.slice?.(0, 200) || "",
     });
   } catch (e: any) {
-    return json({
-      success: false,
-      error: e?.message || "Server error",
-      availableKeys,
-    }, 500);
+    return json<ExtractOut>({ success: false, error: e?.message || "server error" }, 500);
   }
 }
