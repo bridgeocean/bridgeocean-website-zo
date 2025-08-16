@@ -49,27 +49,7 @@ export function AIInvoiceGenerator() {
   const [includeVAT, setIncludeVAT] = useState(false);
   const { toast } = useToast();
 
-  // Fallback knowledge base
-  const bridgeoceanKnowledge = {
-    vehicles: {
-      "gmc terrain": { name: "GMC Terrain Charter Service", rate: 200000, minHours: 10 },
-      gmc: { name: "GMC Terrain Charter Service", rate: 200000, minHours: 10 },
-      "toyota camry": { name: "Toyota Camry Charter Service", rate: 100000, minHours: 10 },
-      camry: { name: "Toyota Camry Charter Service", rate: 100000, minHours: 10 },
-      toyota: { name: "Toyota Camry Charter Service", rate: 100000, minHours: 10 },
-    },
-    terms: {
-      standard: "Payment terms as agreed in conversation",
-      emergency: "Full payment required for emergency services",
-    },
-    notes: {
-      standard: "Professional charter service with driver and fuel included.",
-      firstTimer: "First timer discount applied. Professional charter service with driver and fuel included.",
-      emergency: "Emergency response service with immediate dispatch.",
-    },
-  };
-
-  // Generate Receipt Data from Invoice
+  // ---------- Receipt helper ----------
   const generateReceiptData = (invoice: InvoiceData): ReceiptData => {
     const now = new Date();
     const timestamp =
@@ -92,252 +72,277 @@ export function AIInvoiceGenerator() {
     };
   };
 
-  // -------- HYBRID (regex/heuristics) ----------
+  // ---------- Hybrid extractor (handles k/m/million etc) ----------
   const hybridExtraction = (chat: string) => {
-    const lowerChat = chat.toLowerCase();
+    const lower = chat.toLowerCase();
 
-    // 1) ALL monetary amounts
-    const allAmounts: number[] = [];
-    const amountPatterns = [
-      /₦\s*(\d+(?:,\d+)*)/g,
-      /(\d+(?:,\d+)*)\s*naira/gi,
-      /(\d+(?:,\d+)*)\s*thousand/gi,
+    type Amt = { value: number; index: number; ctx: string };
+    const amounts: Amt[] = [];
+
+    function pushAmount(value: number, index: number) {
+      if (!Number.isFinite(value) || value < 1000) return;
+      const ctx = chat.slice(Math.max(0, index - 60), Math.min(chat.length, index + 60)).toLowerCase();
+      amounts.push({ value: Math.round(value), index, ctx });
+    }
+
+    function parseAmount(numRaw: string, unitRaw?: string) {
+      const n = parseFloat(numRaw.replace(/,/g, ""));
+      if (!Number.isFinite(n)) return NaN;
+      const unit = (unitRaw || "").toLowerCase();
+      if (unit === "million" || unit === "m") return n * 1_000_000;
+      if (unit === "thousand" || unit === "k") return n * 1_000;
+      return n;
+    }
+
+    // ₦ / NGN / N + number + optional unit
+    let m: RegExpExecArray | null;
+    let re1 = /(₦|ngn|(?<![a-z])n)\s*([\d.,]+)\s*(million|m|thousand|k)?/gi;
+    while ((m = re1.exec(chat)) !== null) {
+      const v = parseAmount(m[2], m[3]);
+      pushAmount(v, m.index);
+    }
+    // number + unit (2.85 million)
+    let re2 = /([\d.,]+)\s*(million|m|thousand|k)\b/gi;
+    while ((m = re2.exec(chat)) !== null) {
+      const v = parseAmount(m[1], m[2]);
+      pushAmount(v, m.index);
+    }
+    // comma numbers like 3,150,000
+    let re3 = /(\d{1,3}(?:,\d{3})+)(?!\S)/g;
+    while ((m = re3.exec(chat)) !== null) {
+      const v = parseAmount(m[1]);
+      pushAmount(v, m.index);
+    }
+
+    // Names (simple)
+    const names: string[] = [];
+    const nameRes = [
+      /mr\.?\s+([a-z][a-z\s]+)/gi,
+      /mrs\.?\s+([a-z][a-z\s]+)/gi,
+      /ms\.?\s+([a-z][a-z\s]+)/gi,
+      /my name is\s+([a-z][a-z\s]+)/gi,
+      /i'?m\s+([a-z][a-z\s]+)/gi,
+      /this is\s+([a-z][a-z\s]+)/gi,
+      /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/g,
     ];
-    amountPatterns.forEach((pattern) => {
-      let match;
-      while ((match = pattern.exec(chat)) !== null) {
-        let amount = parseInt(match[1].replace(/,/g, ""));
-        if (pattern.source.includes("thousand")) amount *= 1000;
-        if (amount >= 1000) allAmounts.push(amount);
+    for (const rx of nameRes) {
+      let nm: RegExpExecArray | null;
+      while ((nm = rx.exec(chat)) !== null) {
+        const name = nm[1].trim();
+        if (name.length > 2) names.push(name);
       }
-    });
+    }
+    const customerName = names[0] || "Valued Customer";
 
-    // 2) Names
-    const allNames: string[] = [];
-    const namePatterns = [
-      /mr\.?\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)*)/gi,
-      /mrs\.?\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)*)/gi,
-      /ms\.?\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)*)/gi,
-      /my name is ([a-zA-Z\s]+)/gi,
-      /i'm ([a-zA-Z\s]+)/gi,
-      /this is ([a-zA-Z\s]+)/gi,
-      /([A-Z][a-z]+\s+[A-Z][a-z]+)/g,
-    ];
-    namePatterns.forEach((pattern) => {
-      let match;
-      while ((match = pattern.exec(chat)) !== null) {
-        const name = match[1].trim();
-        if (name.length > 2 && !["Good Morning", "Thank You", "Bridge Ocean"].includes(name)) {
-          allNames.push(name);
-        }
-      }
-    });
-
-    // 3) Dates
-    const dateKeywords: Record<string, number | null> = {
-      today: 0,
-      tomorrow: 1,
-      saturday: null,
-      sunday: null,
-      monday: null,
-      tuesday: null,
-      wednesday: null,
-      thursday: null,
-      friday: null,
-    };
-
-    let serviceDate = new Date();
+    // Date (today/tomorrow/weekday)
+    const today = new Date();
+    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    let serviceDate = new Date(today);
     let foundDate = false;
 
-    Object.entries(dateKeywords).forEach(([keyword, offset]) => {
-      if (lowerChat.includes(keyword)) {
-        if (offset !== null) {
-          serviceDate.setDate(serviceDate.getDate() + offset);
-        } else {
-          const today = new Date();
-          const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-          const target = dayNames.indexOf(keyword);
-          const current = today.getDay();
-          const days = ((target - current + 7) % 7) || 7;
-          serviceDate.setDate(today.getDate() + days);
+    if (lower.includes("tomorrow")) {
+      serviceDate.setDate(today.getDate() + 1);
+      foundDate = true;
+    }
+    if (lower.includes("today")) foundDate = true;
+
+    if (!foundDate) {
+      for (const d of dayNames) {
+        if (lower.includes(d)) {
+          const target = dayNames.indexOf(d);
+          const diff = (target - today.getDay() + 7) % 7 || 7;
+          serviceDate.setDate(today.getDate() + diff);
+          foundDate = true;
+          break;
         }
-        foundDate = true;
       }
-    });
+    }
+    const serviceDateStr = serviceDate.toLocaleDateString("en-GB");
 
-    const specificDatePatterns = [/(\w+)\s+(\d{1,2})(?:st|nd|rd|th)?/gi, /(\d{1,2})(?:st|nd|rd|th)?\s+(\w+)/gi];
-    specificDatePatterns.forEach((pattern) => {
-      const match = chat.match(pattern);
-      if (match && !foundDate) foundDate = true; // (can be enhanced later)
-    });
+    // Duration
+    let duration = "Full day service";
+    const durHours = chat.match(/(\d+)\s*hours?/i);
+    const durDaysNum = chat.match(/(\d+)\s*days?/i);
+    const twoDay = /two[-\s]?day/i.test(chat);
+    if (durHours) duration = `${durHours[1]} hours`;
+    else if (durDaysNum) duration = `${durDaysNum[1]} days`;
+    else if (twoDay) duration = `2 days`;
 
-    // 4) Vehicle
-    let vehicleType = "Charter Service";
-    let vehicleRate = 100000; // default if only vehicle w/o price
-    Object.entries(bridgeoceanKnowledge.vehicles).forEach(([key, info]) => {
-      if (lowerChat.includes(key)) {
-        vehicleType = info.name;
-        vehicleRate = info.rate;
-      }
-    });
+    // Choose final service price: last amount around closing words
+    let servicePrice = 0;
+    const closing = /(agree|deal|final|new total|close the deal|secure|bringing.*down|reduce|price|rate|cost|total)/i;
+    for (const a of amounts) {
+      if (closing.test(a.ctx)) servicePrice = a.value; // keep last match
+    }
+    if (!servicePrice && amounts.length) {
+      servicePrice = Math.max(...amounts.map((a) => a.value));
+    }
 
-    // 5) Assign roles
-    const customerName = allNames.length > 0 ? allNames[0] : "Valued Customer";
-    const servicePrice = allAmounts.length > 0 ? Math.max(...allAmounts) : vehicleRate;
-
-    // Payment heuristic
+    // Amount paid: last amount near pay words
     let amountPaid = 0;
-    const paymentKeywords = ["pay", "transfer", "payment", "upfront", "deposit"];
-    const halfKeywords = ["half", "50%", "fifty percent"];
-    if (halfKeywords.some((k) => lowerChat.includes(k))) {
-      amountPaid = Math.round(servicePrice * 0.5);
-    } else if (paymentKeywords.some((k) => lowerChat.includes(k))) {
-      if (allAmounts.length >= 2) amountPaid = Math.min(...allAmounts);
+    const payWords = /(paid|pay|transfer|deposit|upfront|send|payment)/i;
+    for (const a of amounts) {
+      if (payWords.test(a.ctx)) amountPaid = a.value;
     }
-    if (lowerChat.includes("full amount") || lowerChat.includes("complete payment")) {
-      amountPaid = servicePrice;
-    }
+    if (!amountPaid && /full payment|pay full|pay in full/i.test(lower)) amountPaid = servicePrice;
+
+    // Vehicle guess
+    let vehicleType = "Charter Service";
+    if (/gmc|terrain/i.test(chat)) vehicleType = "GMC Terrain Charter Service";
+    if (/toyota|camry/i.test(chat)) vehicleType = "Toyota Camry Charter Service";
+    if (/yacht|elegance/i.test(chat)) vehicleType = "Elegance Yacht Charter";
 
     return {
       customerName,
       servicePrice,
       amountPaid,
       vehicleType,
-      serviceDate: serviceDate.toLocaleDateString("en-GB"),
-      allAmounts,
-      allNames,
+      serviceDate: serviceDateStr,
+      duration,
     };
   };
 
-  // -------- AI + HYBRID MERGE --------------
-  const aiExtraction = async (chat: string) => {
-    const hybridGuess = hybridExtraction(chat);
+  // ---------- Build invoice from hybrid result ----------
+  const extractInvoiceData = async (chat: string): Promise<InvoiceData> => {
+    const ex = hybridExtraction(chat);
+
+    // business rules
+    let notes = "Professional charter service with driver and fuel included.";
+    let finalRate = ex.servicePrice;
+
+    // if extractor missed price, fallback by vehicle keyword
+    if (!finalRate || finalRate < 1000) {
+      const lower = (ex.vehicleType || "").toLowerCase();
+      if (lower.includes("gmc")) finalRate = 200000;
+      else if (lower.includes("camry") || lower.includes("toyota")) finalRate = 100000;
+      else finalRate = 100000; // default baseline
+    }
+
+    if (/first time|first timer/i.test(chat)) {
+      notes = "First timer discount applied. Professional charter service with driver and fuel included.";
+      finalRate = Math.round(finalRate * 0.9);
+    }
+    if (/emergency/i.test(chat)) {
+      notes = "Emergency response service with immediate dispatch.";
+      finalRate = Math.round(finalRate * 1.2);
+    }
+
+    const quantity = 1;
+    const subtotal = finalRate * quantity;
+    const vat = includeVAT ? Math.round(subtotal * 0.075) : 0;
+    const total = subtotal + vat;
+    const balanceDue = total - (ex.amountPaid || 0);
+
+    const serviceDateObj = new Date(ex.serviceDate.split("/").reverse().join("-"));
+    const dueDate = new Date(serviceDateObj);
+    dueDate.setDate(serviceDateObj.getDate() + 1);
+
+    const invoiceNumber = `INV${String(Date.now()).slice(-3)}-BO`;
+
+    return {
+      invoiceNumber,
+      customerName: ex.customerName,
+      serviceDate: ex.serviceDate,
+      dueDate: dueDate.toLocaleDateString("en-GB"),
+      vehicle: ex.vehicleType,
+      duration: ex.duration || "Full day service",
+      rate: finalRate,
+      quantity,
+      subtotal,
+      vat,
+      total,
+      amountPaid: ex.amountPaid || 0,
+      balanceDue,
+      notes,
+      terms: "Payment terms as agreed in conversation",
+    };
+  };
+
+  // ---------- Robust PDF generation (bundled build + waits) ----------
+  let _html2pdfPromise: Promise<any> | null = null;
+  async function loadHtml2pdf() {
+    if (!_html2pdfPromise) {
+      _html2pdfPromise = import("html2pdf.js/dist/html2pdf.bundle.min.js");
+    }
+    const mod = await _html2pdfPromise;
+    return (mod?.default ?? (globalThis as any).html2pdf) as any;
+  }
+  async function waitForAssets(root: HTMLElement) {
     try {
-      const res = await fetch("/api/ai-extract", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat }),
-      });
-      const result = await res.json();
+      // @ts-ignore
+      await document.fonts?.ready;
+    } catch {}
+    const imgs = Array.from(root.querySelectorAll("img")) as HTMLImageElement[];
+    await Promise.all(
+      imgs.map((img) => {
+        try {
+          if (!img.crossOrigin) img.crossOrigin = "anonymous";
+        } catch {}
+        return img.complete
+          ? Promise.resolve()
+          : new Promise((res) => {
+              img.addEventListener("load", res, { once: true });
+              img.addEventListener("error", res, { once: true });
+            });
+      })
+    );
+  }
+  function isIOSorSafari() {
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+    return isIOS || isSafari;
+  }
 
-      if (result.success && result.data) {
-        return {
-          customerName: result.data.customerName || hybridGuess.customerName || "Valued Customer",
-          vehicleType: result.data.vehicleType || hybridGuess.vehicleType || "Charter Service",
-          servicePrice:
-            (typeof result.data.servicePrice === "number" && result.data.servicePrice >= 1000
-              ? result.data.servicePrice
-              : hybridGuess.servicePrice) || undefined,
-          amountPaid:
-            (typeof result.data.amountPaid === "number" && result.data.amountPaid >= 0
-              ? result.data.amountPaid
-              : hybridGuess.amountPaid) ?? 0,
-          serviceDate: result.data.serviceDate || hybridGuess.serviceDate || new Date().toLocaleDateString("en-GB"),
-          duration: result.data.duration || "Full day service",
-          isEmergency: !!result.data.isEmergency,
-          isFirstTimer: !!result.data.isFirstTimer,
-          source: result.source || "AI",
-        };
+  const generatePDF = async (htmlContent: string, filename: string) => {
+    const host = document.createElement("div");
+    host.style.position = "fixed";
+    host.style.left = "-99999px";
+    host.style.top = "0";
+    host.style.width = "794px"; // ~A4 width @ 96dpi
+    host.style.zIndex = "-1";
+    host.innerHTML = htmlContent;
+    document.body.appendChild(host);
+
+    try {
+      const html2pdf = await loadHtml2pdf();
+      await waitForAssets(host);
+
+      const opts = {
+        margin: 10,
+        filename,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, allowTaint: false, backgroundColor: "#ffffff", logging: false },
+        jsPDF: { unit: "mm" as const, format: "a4" as const, orientation: "portrait" as const },
+      };
+
+      if (isIOSorSafari()) {
+        await html2pdf().set(opts).from(host).toPdf().save();
+      } else {
+        await html2pdf().set(opts).from(host).save();
       }
-
-      // AI failed → hybrid
-      return {
-        customerName: hybridGuess.customerName,
-        vehicleType: hybridGuess.vehicleType,
-        servicePrice: hybridGuess.servicePrice,
-        amountPaid: hybridGuess.amountPaid,
-        serviceDate: hybridGuess.serviceDate,
-        duration: "Full day service",
-        isEmergency: false,
-        isFirstTimer: false,
-        source: "Hybrid Logic",
-      };
-    } catch {
-      // Network error → hybrid
-      return {
-        customerName: hybridGuess.customerName,
-        vehicleType: hybridGuess.vehicleType,
-        servicePrice: hybridGuess.servicePrice,
-        amountPaid: hybridGuess.amountPaid,
-        serviceDate: hybridGuess.serviceDate,
-        duration: "Full day service",
-        isEmergency: false,
-        isFirstTimer: false,
-        source: "Hybrid Logic",
-      };
+    } catch (err) {
+      const blob = new Blob([htmlContent], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename.replace(/\.pdf$/i, ".html");
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      throw new Error("PDF generation failed; HTML downloaded instead.");
+    } finally {
+      host.remove();
     }
   };
 
-  // -------- Extract + compute invoice --------------
-  const extractInvoiceDataWithAI = async (chat: string): Promise<InvoiceData> => {
+  // ---------- Actions ----------
+  const extractInvoiceDataWithAI = async (chat: string) => {
     setIsGenerating(true);
     try {
-      await new Promise((r) => setTimeout(r, 600)); // tiny UX delay
-      const ex = await aiExtraction(chat);
-
-      // Duration from chat
-      let duration = "Full day service";
-      if (chat.toLowerCase().includes("hour")) {
-        const m = chat.match(/(\d+)\s*hours?/i);
-        if (m) duration = `${m[1]} hours`;
-      }
-
-      // Notes + base rate (catalog fallback if price missing)
-      const lower = chat.toLowerCase();
-      let notes = bridgeoceanKnowledge.notes.standard;
-
-      // Base rate from extracted price (if any)
-      let finalRate = ex.servicePrice;
-
-      // Catalog fallback if price missing/invalid
-      if (!finalRate || finalRate < 1000) {
-        const lv = (ex.vehicleType || "").toLowerCase();
-        if (lv.includes("gmc")) finalRate = 200000;
-        else if (lv.includes("camry") || lv.includes("toyota")) finalRate = 100000;
-        else finalRate = ex.servicePrice || 100000; // last resort
-      }
-
-      // Modifiers
-      if (ex.isFirstTimer || lower.includes("first time") || lower.includes("first timer")) {
-        notes = bridgeoceanKnowledge.notes.firstTimer;
-        finalRate = Math.round(finalRate * 0.9);
-      }
-      if (ex.isEmergency || lower.includes("emergency")) {
-        notes = bridgeoceanKnowledge.notes.emergency;
-        finalRate = Math.round(finalRate * 1.2);
-      }
-
-      // Amounts
-      const quantity = 1;
-      const subtotal = finalRate * quantity;
-      const vat = includeVAT ? Math.round(subtotal * 0.075) : 0;
-      const total = subtotal + vat;
-      const balanceDue = total - (ex.amountPaid ?? 0);
-
-      // Dates
-      const serviceDateObj = new Date(ex.serviceDate.split("/").reverse().join("-"));
-      const dueDate = new Date(serviceDateObj);
-      dueDate.setDate(serviceDateObj.getDate() + 1);
-
-      const invoiceNumber = `INV${String(Date.now()).slice(-3)}-BO`;
-
-      return {
-        invoiceNumber,
-        customerName: ex.customerName,
-        serviceDate: ex.serviceDate,
-        dueDate: dueDate.toLocaleDateString("en-GB"),
-        vehicle: ex.vehicleType,
-        duration,
-        rate: finalRate,
-        quantity,
-        subtotal,
-        vat,
-        total,
-        amountPaid: ex.amountPaid ?? 0,
-        balanceDue,
-        notes,
-        terms: bridgeoceanKnowledge.terms.standard,
-      };
+      await new Promise((r) => setTimeout(r, 300)); // tiny UX delay
+      return await extractInvoiceData(chat);
     } finally {
       setIsGenerating(false);
     }
@@ -355,53 +360,14 @@ export function AIInvoiceGenerator() {
     try {
       const data = await extractInvoiceDataWithAI(whatsappChat);
       setInvoiceData(data);
-      const receipt = generateReceiptData(data);
-      setReceiptData(receipt);
-      toast({ title: "Invoice & Receipt generated", description: `Data extracted from conversation` });
-    } catch {
+      setReceiptData(generateReceiptData(data));
+      toast({ title: "Invoice & Receipt generated", description: "Hybrid extraction completed." });
+    } catch (e) {
       toast({
         title: "Error generating invoice",
-        description: "Please try again or check your WhatsApp chat format",
+        description: "Please try again or check the conversation format.",
         variant: "destructive",
       });
-    }
-  };
-
-  // ----- PDF (kept as you have) -----
-  const generatePDF = async (htmlContent: string, filename: string) => {
-    try {
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = htmlContent;
-      tempDiv.style.position = "absolute";
-      tempDiv.style.left = "-9999px";
-      document.body.appendChild(tempDiv);
-
-      const html2pdf = (await import("html2pdf.js")).default;
-
-      await html2pdf()
-        .set({
-          margin: 1,
-          filename,
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2 },
-          jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
-        })
-        .from(tempDiv)
-        .save();
-
-      document.body.removeChild(tempDiv);
-    } catch (error) {
-      const blob = new Blob([htmlContent], { type: "text/html" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename.replace(".pdf", ".html");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      throw new Error("PDF generation failed, downloaded as HTML instead");
     }
   };
 
@@ -410,116 +376,87 @@ export function AIInvoiceGenerator() {
     setIsGeneratingPDF(true);
     try {
       const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Invoice ${invoiceData.invoiceNumber}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 40px; }
-            .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-            .invoice-title { font-size: 32px; font-weight: bold; }
-            .invoice-number { font-size: 18px; color: #2563eb; font-weight: bold; }
-            .company-info { text-align: right; }
-            .bill-to { margin: 20px 0; }
-            .dates { display: flex; justify-content: space-between; margin: 20px 0; }
-            .items-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            .items-table th, .items-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-            .items-table th { background-color: #f5f5f5; }
-            .totals { margin-left: auto; width: 300px; }
-            .total-row { display: flex; justify-content: space-between; padding: 5px 0; }
-            .total-final { font-weight: bold; font-size: 18px; border-top: 2px solid #000; padding-top: 10px; }
-            .notes { margin-top: 30px; }
-            .terms { margin-top: 20px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div>
-              <div class="invoice-title">INVOICE</div>
-              <div class="invoice-number">#${invoiceData.invoiceNumber}</div>
-            </div>
-            <div class="company-info">
-              <h2>Bridgeocean Limited</h2>
-              <p>Premium Charter Services</p>
-            </div>
-          </div>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Invoice ${invoiceData.invoiceNumber}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    .invoice-title { font-size: 32px; font-weight: bold; }
+    .invoice-number { font-size: 18px; color: #2563eb; font-weight: bold; }
+    .company-info { text-align: right; }
+    .bill-to { margin: 20px 0; }
+    .dates { display: flex; justify-content: space-between; margin: 20px 0; }
+    .items-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    .items-table th, .items-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+    .items-table th { background-color: #f5f5f5; }
+    .totals { margin-left: auto; width: 300px; }
+    .total-row { display: flex; justify-content: space-between; padding: 5px 0; }
+    .total-final { font-weight: bold; font-size: 18px; border-top: 2px solid #000; padding-top: 10px; }
+    .notes { margin-top: 30px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="invoice-title">INVOICE</div>
+      <div class="invoice-number">#${invoiceData.invoiceNumber}</div>
+    </div>
+    <div class="company-info">
+      <h2>Bridgeocean Limited</h2>
+      <p>Premium Charter Services</p>
+    </div>
+  </div>
 
-          <div class="bill-to">
-            <h3>Bill To:</h3>
-            <p style="font-size: 18px;">${invoiceData.customerName}</p>
-          </div>
+  <div class="bill-to">
+    <h3>Bill To:</h3>
+    <p style="font-size: 18px;">${invoiceData.customerName}</p>
+  </div>
 
-          <div class="dates">
-            <div><strong>Service Date:</strong> ${invoiceData.serviceDate}</div>
-            <div><strong>Due Date:</strong> ${invoiceData.dueDate}</div>
-            <div><strong>Balance Due:</strong> ₦${invoiceData.balanceDue.toLocaleString()}</div>
-          </div>
+  <div class="dates">
+    <div><strong>Service Date:</strong> ${invoiceData.serviceDate}</div>
+    <div><strong>Due Date:</strong> ${invoiceData.dueDate}</div>
+    <div><strong>Balance Due:</strong> ₦${invoiceData.balanceDue.toLocaleString()}</div>
+  </div>
 
-          <table class="items-table">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Quantity</th>
-                <th>Rate</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>${invoiceData.vehicle} (${invoiceData.duration})</td>
-                <td>${invoiceData.quantity}</td>
-                <td>₦${invoiceData.rate.toLocaleString()}</td>
-                <td>₦${invoiceData.subtotal.toLocaleString()}</td>
-              </tr>
-            </tbody>
-          </table>
+  <table class="items-table">
+    <thead>
+      <tr><th>Item</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>${invoiceData.vehicle} (${invoiceData.duration})</td>
+        <td>${invoiceData.quantity}</td>
+        <td>₦${invoiceData.rate.toLocaleString()}</td>
+        <td>₦${invoiceData.subtotal.toLocaleString()}</td>
+      </tr>
+    </tbody>
+  </table>
 
-            <div class="totals">
-              <div class="total-row">
-                <span>Subtotal:</span>
-                <span>₦${invoiceData.subtotal.toLocaleString()}</span>
-              </div>
-              ${
-                invoiceData.vat > 0
-                  ? `<div class="total-row">
-                      <span>VAT (7.5%):</span>
-                      <span>₦${invoiceData.vat.toLocaleString()}</span>
-                    </div>`
-                  : ""
-              }
-              <div class="total-row total-final">
-                <span>Total:</span>
-                <span>₦${invoiceData.total.toLocaleString()}</span>
-              </div>
-              <div class="total-row">
-                <span>Amount Paid:</span>
-                <span>₦${invoiceData.amountPaid.toLocaleString()}</span>
-              </div>
-              <div class="total-row total-final">
-                <span>Balance Due:</span>
-                <span>₦${invoiceData.balanceDue.toLocaleString()}</span>
-              </div>
-            </div>
+  <div class="totals">
+    <div class="total-row"><span>Subtotal:</span><span>₦${invoiceData.subtotal.toLocaleString()}</span></div>
+    ${invoiceData.vat > 0 ? `<div class="total-row"><span>VAT (7.5%):</span><span>₦${invoiceData.vat.toLocaleString()}</span></div>` : ""}
+    <div class="total-row total-final"><span>Total:</span><span>₦${invoiceData.total.toLocaleString()}</span></div>
+    <div class="total-row"><span>Amount Paid:</span><span>₦${invoiceData.amountPaid.toLocaleString()}</span></div>
+    <div class="total-row total-final"><span>Balance Due:</span><span>₦${invoiceData.balanceDue.toLocaleString()}</span></div>
+  </div>
 
-          <div class="notes">
-            <h4>Notes:</h4>
-            <p>${invoiceData.notes}</p>
-          </div>
-
-          <div class="terms">
-            <h4>Terms:</h4>
-            <p>${invoiceData.terms}</p>
-          </div>
-        </body>
-        </html>
-      `;
+  <div class="notes">
+    <h4>Notes:</h4>
+    <p>${invoiceData.notes}</p>
+    <h4>Terms:</h4>
+    <p>${invoiceData.terms}</p>
+  </div>
+</body>
+</html>`;
       await generatePDF(htmlContent, `Invoice-${invoiceData.invoiceNumber}-Bridgeocean.pdf`);
-      toast({ title: "Invoice Downloaded (PDF)", description: `#${invoiceData.invoiceNumber}` });
-    } catch (error) {
+      toast({ title: "Invoice downloaded", description: `#${invoiceData.invoiceNumber}` });
+    } catch (error: any) {
       toast({
         title: "PDF generation failed",
-        description: error instanceof Error ? error.message : "Downloaded as HTML instead",
+        description: error?.message ?? "Downloaded as HTML instead",
         variant: "destructive",
       });
     } finally {
@@ -532,52 +469,52 @@ export function AIInvoiceGenerator() {
     setIsGeneratingReceipt(true);
     try {
       const receiptContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Receipt ${receiptData.transactionId}</title>
-          <style>
-            body { font-family: 'Courier New', monospace; margin: 40px; background-color: #f9f9f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-            .receipt { background: white; padding: 30px; border: 2px solid #000; max-width: 400px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-            .company-name { font-size: 18px; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; }
-            .datetime { font-size: 14px; margin-bottom: 15px; }
-            .transaction-info { text-align: left; margin: 20px 0; font-size: 14px; }
-            .amount-line { display: flex; justify-content: space-between; margin: 5px 0; }
-            .total-line { font-weight: bold; border-top: 1px solid #000; padding-top: 5px; margin-top: 10px; }
-            .footer { margin-top: 20px; font-size: 12px; }
-            .company-footer { margin-top: 15px; font-size: 14px; font-weight: bold; }
-          </style>
-        </head>
-        <body>
-          <div class="receipt">
-            <div class="company-name">BRIDGEOCEAN LIMITED</div>
-            <div class="datetime">${receiptData.timestamp}</div>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Receipt ${receiptData.transactionId}</title>
+  <style>
+    body { font-family: 'Courier New', monospace; margin: 40px; background-color: #f9f9f9;
+           display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .receipt { background: white; padding: 30px; border: 2px solid #000; max-width: 400px; text-align: center; }
+    .company-name { font-size: 18px; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; }
+    .datetime { font-size: 14px; margin-bottom: 15px; }
+    .transaction-info { text-align: left; margin: 20px 0; font-size: 14px; }
+    .amount-line { display: flex; justify-content: space-between; margin: 5px 0; }
+    .total-line { font-weight: bold; border-top: 1px solid #000; padding-top: 5px; margin-top: 10px; }
+    .footer { margin-top: 20px; font-size: 12px; }
+    .company-footer { margin-top: 15px; font-size: 14px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="receipt">
+    <div class="company-name">BRIDGEOCEAN LIMITED</div>
+    <div class="datetime">${receiptData.timestamp}</div>
 
-            <div class="transaction-info">
-              <div>TRANS ${receiptData.transactionId}</div>
-              <div>MCC ${receiptData.mccCode}</div>
-              <div>PAYMENT - ${receiptData.paymentMethod}</div>
-            </div>
+    <div class="transaction-info">
+      <div>TRANS ${receiptData.transactionId}</div>
+      <div>MCC ${receiptData.mccCode}</div>
+      <div>PAYMENT - ${receiptData.paymentMethod}</div>
+    </div>
 
-            <div class="transaction-info">
-              <div class="amount-line"><span>SUBTOTAL:</span><span>₦${receiptData.subtotal.toLocaleString()}.00</span></div>
-              <div class="amount-line"><span>SERVICE:</span><span>₦${receiptData.serviceCharge.toLocaleString()}.00</span></div>
-              <div class="amount-line total-line"><span>TOTAL:</span><span>₦${receiptData.total.toLocaleString()}.00</span></div>
-            </div>
+    <div class="transaction-info">
+      <div class="amount-line"><span>SUBTOTAL:</span><span>₦${receiptData.subtotal.toLocaleString()}.00</span></div>
+      <div class="amount-line"><span>SERVICE:</span><span>₦${receiptData.serviceCharge.toLocaleString()}.00</span></div>
+      <div class="amount-line total-line"><span>TOTAL:</span><span>₦${receiptData.total.toLocaleString()}.00</span></div>
+    </div>
 
-            <div class="footer"><div>PLEASE COME AGAIN</div><div>THANK YOU</div></div>
-            <div class="company-footer">...........BRIDGEOCEAN LIMITED...........</div>
-          </div>
-        </body>
-        </html>
-      `;
+    <div class="footer"><div>PLEASE COME AGAIN</div><div>THANK YOU</div></div>
+    <div class="company-footer">...........BRIDGEOCEAN LIMITED...........</div>
+  </div>
+</body>
+</html>`;
       await generatePDF(receiptContent, `Receipt-${receiptData.transactionId}-Bridgeocean.pdf`);
-      toast({ title: "Receipt Downloaded (PDF)", description: receiptData.transactionId });
-    } catch (error) {
+      toast({ title: "Receipt downloaded", description: `#${receiptData.transactionId}` });
+    } catch (error: any) {
       toast({
         title: "PDF generation failed",
-        description: error instanceof Error ? error.message : "Downloaded as HTML instead",
+        description: error?.message ?? "Downloaded as HTML instead",
         variant: "destructive",
       });
     } finally {
@@ -585,27 +522,32 @@ export function AIInvoiceGenerator() {
     }
   };
 
+  // ---------- UI helpers ----------
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 }).format(amount);
 
   const exampleChats = [
-    `Client (Mr. James Okafor): Good morning. I'm interested in chartering a Toyota Camry from your fleet. Could you please confirm availability and cost for a day?
-Bridgeocean (Ms. Ada Eze): Good morning, Mr. Okafor. Thank you for reaching out. Yes, the Toyota Camry is available. The cost for a full-day charter is ₦35,000. May I ask what date you'll need the service?
-Client: That works for me. I'll need the service on Saturday, August 10th.
-Bridgeocean: Perfect. I've reserved the Camry for you on August 10th. Pickup will be available from 8:00 AM. Payment can be made via transfer to confirm your booking.
-Client: Great, I'll make the transfer now. Thanks for your prompt response.`,
+    `Chika: Good afternoon! My name is Chika. How can I assist you today?
+Mr. Adebayo: Hi Chika. I need a quote for a two-day charter in Lagos for a corporate event with 20 guests.
+Chika: I'd recommend our "Elegance" yacht. The standard two-day charter rate is NGN 3,500,000.
+Mr. Adebayo: That's over budget. I'm looking to spend around NGN 2.8 million.
+Chika: We can offer a 10% discount → NGN 3,150,000.
+Mr. Adebayo: Can you meet us at NGN 2.85 million to close the deal?
+Chika: We agree to NGN 2.85 million (yacht + crew, no dinner).
+Mr. Adebayo: Great — I'll transfer NGN 1,000,000 now as deposit.`,
+
     `Customer: Hi, I need to book your GMC Terrain for tomorrow
 Bridgeocean: Hello! That's ₦200,000 for 10 hours (minimum). Can you pay 50% now?
 Customer: Yes, my name is John Adebayo. I'll pay ₦100,000 now
 Bridgeocean: Perfect, booking confirmed`,
-    `Customer: Emergency! Need a car right now
-Bridgeocean: We can help! What's your name?
-Customer: I'm David Okoro at Victoria Island
-Bridgeocean: GMC Terrain available, ₦240,000 for emergency service
-Customer: Book it now, I'll pay full amount
-Bridgeocean: Emergency booking confirmed`,
+
+    `Customer: Emergency! Need a car now at VI
+Bridgeocean: GMC Terrain available, ₦240,000 emergency rate
+Customer: That's fine, I'll make full payment
+Bridgeocean: Confirmed.`
   ];
 
+  // ---------- JSX ----------
   return (
     <div className="space-y-6">
       <Card>
@@ -614,7 +556,7 @@ Bridgeocean: Emergency booking confirmed`,
             <Brain className="h-5 w-5" />
             Hybrid AI Invoice & Receipt Generator
           </CardTitle>
-          <CardDescription>Extracts ALL amounts, names, and dates from conversation - uses business logic to assign roles</CardDescription>
+          <CardDescription>Extracts amounts/names/dates and applies business logic to assign roles.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -629,12 +571,8 @@ Bridgeocean: Emergency booking confirmed`,
           </div>
 
           <div className="flex items-center space-x-2">
-            <Checkbox
-              id="include-vat"
-              checked={includeVAT}
-              onCheckedChange={(checked) => setIncludeVAT(checked as boolean)}
-            />
-            <label htmlFor="include-vat" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            <Checkbox id="include-vat" checked={includeVAT} onCheckedChange={(v) => setIncludeVAT(!!v)} />
+            <label htmlFor="include-vat" className="text-sm font-medium">
               Include 7.5% VAT in calculations
             </label>
           </div>
@@ -651,7 +589,7 @@ Bridgeocean: Emergency booking confirmed`,
                   className="text-xs h-auto p-3 text-left justify-start"
                 >
                   <div className="truncate">
-                    <strong>Example {index + 1}:</strong> {example.split("\n")[0].substring(0, 60)}...
+                    <strong>Example {index + 1}:</strong> {example.split("\n")[0].substring(0, 70)}...
                   </div>
                 </Button>
               ))}
@@ -662,7 +600,7 @@ Bridgeocean: Emergency booking confirmed`,
             {isGenerating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Extracting All Data with Hybrid Logic...
+                Extracting…
               </>
             ) : (
               <>
@@ -681,7 +619,7 @@ Bridgeocean: Emergency booking confirmed`,
               <FileText className="h-5 w-5" />
               Generated Documents
             </CardTitle>
-            <CardDescription>Invoice and Receipt with PDF download support</CardDescription>
+            <CardDescription>Preview and download as PDF</CardDescription>
 
             <div className="flex gap-2 mt-4">
               <Button
@@ -788,19 +726,6 @@ Bridgeocean: Emergency booking confirmed`,
                     <span>{formatCurrency(invoiceData.balanceDue)}</span>
                   </div>
                 </div>
-
-                <Separator />
-
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold mb-2">Notes:</h4>
-                    <p className="text-sm text-muted-foreground">{invoiceData.notes}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-2">Terms:</h4>
-                    <p className="text-sm text-muted-foreground">{invoiceData.terms}</p>
-                  </div>
-                </div>
               </>
             )}
 
@@ -846,7 +771,7 @@ Bridgeocean: Emergency booking confirmed`,
                 {isGeneratingPDF ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating PDF...
+                    Generating PDF…
                   </>
                 ) : (
                   <>
@@ -860,7 +785,7 @@ Bridgeocean: Emergency booking confirmed`,
                 {isGeneratingReceipt ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating PDF...
+                    Generating PDF…
                   </>
                 ) : (
                   <>
@@ -873,14 +798,22 @@ Bridgeocean: Emergency booking confirmed`,
               <Button
                 variant="outline"
                 onClick={() => {
+                  if (!invoiceData || !receiptData) return;
                   const text =
                     activeView === "invoice"
-                      ? `Invoice #${invoiceData!.invoiceNumber}\nCustomer: ${invoiceData!.customerName}\nService: ${invoiceData!.vehicle}\nTotal: ${formatCurrency(invoiceData!.total)}\nBalance Due: ${formatCurrency(invoiceData!.balanceDue)}`
-                      : `Receipt ${receiptData!.transactionId}\nCustomer: ${receiptData!.customerName}\nAmount: ₦${receiptData!.total.toLocaleString()}\nPayment: ${receiptData!.paymentMethod}`;
+                      ? `Invoice #${invoiceData.invoiceNumber}
+Customer: ${invoiceData.customerName}
+Service: ${invoiceData.vehicle}
+Total: ${formatCurrency(invoiceData.total)}
+Balance Due: ${formatCurrency(invoiceData.balanceDue)}`
+                      : `Receipt ${receiptData.transactionId}
+Customer: ${receiptData.customerName}
+Amount: ₦${receiptData.total.toLocaleString()}
+Payment: ${receiptData.paymentMethod}`;
                   navigator.clipboard.writeText(text);
                   toast({
                     title: "Copied to clipboard",
-                    description: `${activeView === "invoice" ? "Invoice" : "Receipt"} details copied to clipboard`,
+                    description: `${activeView === "invoice" ? "Invoice" : "Receipt"} details copied.`,
                   });
                 }}
               >
