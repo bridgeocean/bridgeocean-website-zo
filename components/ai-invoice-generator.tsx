@@ -49,7 +49,7 @@ export function AIInvoiceGenerator() {
   const [includeVAT, setIncludeVAT] = useState(false);
   const { toast } = useToast();
 
-  // ---------- Receipt helper ----------
+  // ---------- Receipt helper (with clamp) ----------
   const generateReceiptData = (invoice: InvoiceData): ReceiptData => {
     const now = new Date();
     const timestamp =
@@ -60,19 +60,22 @@ export function AIInvoiceGenerator() {
     const transactionId = Math.random().toString(36).substring(2, 9).toUpperCase();
     const mccCode = "4121" + Math.random().toString(36).substring(2, 6).toUpperCase();
 
+    // (2) clamp amountPaid to [0, total]
+    const paid = Math.max(0, Math.min(invoice.amountPaid ?? 0, invoice.total ?? Number.MAX_SAFE_INTEGER));
+
     return {
       transactionId,
       mccCode,
       paymentMethod: "Bank Transfer",
-      subtotal: invoice.amountPaid,
+      subtotal: paid,
       serviceCharge: 0,
-      total: invoice.amountPaid,
+      total: paid,
       timestamp,
       customerName: invoice.customerName,
     };
   };
 
-  // ---------- Hybrid extractor (handles k/m/million etc) ----------
+  // ---------- Hybrid extractor (improved k/m/million + payment detection) ----------
   const hybridExtraction = (chat: string) => {
     const lower = chat.toLowerCase();
 
@@ -81,7 +84,8 @@ export function AIInvoiceGenerator() {
 
     function pushAmount(value: number, index: number) {
       if (!Number.isFinite(value) || value < 1000) return;
-      const ctx = chat.slice(Math.max(0, index - 60), Math.min(chat.length, index + 60)).toLowerCase();
+      // wider context helps classify
+      const ctx = chat.slice(Math.max(0, index - 80), Math.min(chat.length, index + 80)).toLowerCase();
       amounts.push({ value: Math.round(value), index, ctx });
     }
 
@@ -97,22 +101,15 @@ export function AIInvoiceGenerator() {
     // ₦ / NGN / N + number + optional unit
     let m: RegExpExecArray | null;
     let re1 = /(₦|ngn|(?<![a-z])n)\s*([\d.,]+)\s*(million|m|thousand|k)?/gi;
-    while ((m = re1.exec(chat)) !== null) {
-      const v = parseAmount(m[2], m[3]);
-      pushAmount(v, m.index);
-    }
-    // number + unit (2.85 million)
+    while ((m = re1.exec(chat)) !== null) pushAmount(parseAmount(m[2], m[3]), m.index);
+
+    // number + unit (e.g., 2.85 million, 250k)
     let re2 = /([\d.,]+)\s*(million|m|thousand|k)\b/gi;
-    while ((m = re2.exec(chat)) !== null) {
-      const v = parseAmount(m[1], m[2]);
-      pushAmount(v, m.index);
-    }
-    // comma numbers like 3,150,000
+    while ((m = re2.exec(chat)) !== null) pushAmount(parseAmount(m[1], m[2]), m.index);
+
+    // big comma numbers like 3,150,000
     let re3 = /(\d{1,3}(?:,\d{3})+)(?!\S)/g;
-    while ((m = re3.exec(chat)) !== null) {
-      const v = parseAmount(m[1]);
-      pushAmount(v, m.index);
-    }
+    while ((m = re3.exec(chat)) !== null) pushAmount(parseAmount(m[1]), m.index);
 
     // Names (simple)
     const names: string[] = [];
@@ -168,29 +165,36 @@ export function AIInvoiceGenerator() {
     else if (durDaysNum) duration = `${durDaysNum[1]} days`;
     else if (twoDay) duration = `2 days`;
 
-    // Choose final service price: last amount around closing words
+    // Choose final service price: prefer the last amount around closing words
     let servicePrice = 0;
-    const closing = /(agree|deal|final|new total|close the deal|secure|bringing.*down|reduce|price|rate|cost|total)/i;
-    for (const a of amounts) {
-      if (closing.test(a.ctx)) servicePrice = a.value; // keep last match
-    }
-    if (!servicePrice && amounts.length) {
-      servicePrice = Math.max(...amounts.map((a) => a.value));
-    }
+    const closing = /(agree|deal|final|new total|close the deal|secure|bringing|reduce|price|rate|cost|total)/i;
+    for (const a of amounts) if (closing.test(a.ctx)) servicePrice = a.value; // keep last
+    if (!servicePrice && amounts.length) servicePrice = Math.max(...amounts.map((a) => a.value));
 
-    // Amount paid: last amount near pay words
+    // Amount paid: prefer the last amount near broad pay words
     let amountPaid = 0;
-    const payWords = /(paid|pay|transfer|deposit|upfront|send|payment)/i;
-    for (const a of amounts) {
-      if (payWords.test(a.ctx)) amountPaid = a.value;
+    const payAny =
+      /(paid|pay(?:ing)?|transfer(?:red)?|deposit|upfront|advance|part\s*payment|sent|sending|proof|receipt)/i;
+    for (const a of amounts) if (payAny.test(a.ctx)) amountPaid = a.value;
+
+    // Inference fallbacks
+    if (!amountPaid && /50%|half|fifty percent/i.test(lower) && servicePrice) {
+      amountPaid = Math.round(servicePrice * 0.5);
+    } else if (!amountPaid && /(deposit|upfront|advance|part\s*payment)/i.test(lower) && amounts.length >= 2) {
+      amountPaid = Math.min(...amounts.map((a) => a.value));
+    } else if (!amountPaid && /full\s*(?:amount|payment)/i.test(lower)) {
+      amountPaid = servicePrice;
     }
-    if (!amountPaid && /full payment|pay full|pay in full/i.test(lower)) amountPaid = servicePrice;
 
     // Vehicle guess
     let vehicleType = "Charter Service";
     if (/gmc|terrain/i.test(chat)) vehicleType = "GMC Terrain Charter Service";
     if (/toyota|camry/i.test(chat)) vehicleType = "Toyota Camry Charter Service";
     if (/yacht|elegance/i.test(chat)) vehicleType = "Elegance Yacht Charter";
+
+    // Optional: quick debug hook
+    // @ts-ignore
+    (window as any).__invoice_debug = { amounts, servicePrice, amountPaid };
 
     return {
       customerName,
@@ -210,12 +214,12 @@ export function AIInvoiceGenerator() {
     let notes = "Professional charter service with driver and fuel included.";
     let finalRate = ex.servicePrice;
 
-    // if extractor missed price, fallback by vehicle keyword
+    // fallback price by SKU only if extractor missed
     if (!finalRate || finalRate < 1000) {
       const lower = (ex.vehicleType || "").toLowerCase();
       if (lower.includes("gmc")) finalRate = 200000;
       else if (lower.includes("camry") || lower.includes("toyota")) finalRate = 100000;
-      else finalRate = 100000; // default baseline
+      else finalRate = 100000;
     }
 
     if (/first time|first timer/i.test(chat)) {
@@ -341,7 +345,7 @@ export function AIInvoiceGenerator() {
   const extractInvoiceDataWithAI = async (chat: string) => {
     setIsGenerating(true);
     try {
-      await new Promise((r) => setTimeout(r, 300)); // tiny UX delay
+      await new Promise((r) => setTimeout(r, 300));
       return await extractInvoiceData(chat);
     } finally {
       setIsGenerating(false);
@@ -544,7 +548,7 @@ Bridgeocean: Perfect, booking confirmed`,
     `Customer: Emergency! Need a car now at VI
 Bridgeocean: GMC Terrain available, ₦240,000 emergency rate
 Customer: That's fine, I'll make full payment
-Bridgeocean: Confirmed.`
+Bridgeocean: Confirmed.`,
   ];
 
   // ---------- JSX ----------
