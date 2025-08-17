@@ -49,7 +49,33 @@ export function AIInvoiceGenerator() {
   const [includeVAT, setIncludeVAT] = useState(false);
   const { toast } = useToast();
 
-  // ---------- Receipt helper (with clamp to avoid ₦0.00) ----------
+  // ---------- Optional AI merge ----------
+  async function tryGemini(chat: string) {
+    try {
+      const res = await fetch("/api/ai-extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat }),
+      });
+      const json = await res.json();
+      return json?.success ? (json.data as Partial<InvoiceLike>) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  type InvoiceLike = {
+    customerName?: string;
+    vehicleType?: string;
+    servicePrice?: number;
+    amountPaid?: number;
+    serviceDate?: string;
+    duration?: string;
+    isEmergency?: boolean;
+    isFirstTimer?: boolean;
+  };
+
+  // ---------- Receipt helper (clamp) ----------
   const generateReceiptData = (invoice: InvoiceData): ReceiptData => {
     const now = new Date();
     const timestamp =
@@ -76,8 +102,8 @@ export function AIInvoiceGenerator() {
     };
   };
 
-  // ---------- Hybrid extractor (k/m/million + strong payment detection) ----------
-  const hybridExtraction = (chat: string) => {
+  // ---------- Hybrid extractor ----------
+  const hybridExtraction = (chat: string): InvoiceLike => {
     const lower = chat.toLowerCase();
 
     type Amt = { value: number; index: number; ctx: string };
@@ -103,7 +129,7 @@ export function AIInvoiceGenerator() {
     let re1 = /(₦|ngn|(?<![a-z])n)\s*([\d.,]+)\s*(million|m|thousand|k)?/gi;
     while ((m = re1.exec(chat)) !== null) pushAmount(parseAmount(m[2], m[3]), m.index);
 
-    // number + unit (e.g., 2.85 million, 250k)
+    // number + unit (2.85 million, 250k)
     let re2 = /([\d.,]+)\s*(million|m|thousand|k)\b/gi;
     while ((m = re2.exec(chat)) !== null) pushAmount(parseAmount(m[1], m[2]), m.index);
 
@@ -111,7 +137,7 @@ export function AIInvoiceGenerator() {
     let re3 = /(\d{1,3}(?:,\d{3})+)(?!\S)/g;
     while ((m = re3.exec(chat)) !== null) pushAmount(parseAmount(m[1]), m.index);
 
-    // Names (simple)
+    // Names
     const names: string[] = [];
     const nameRes = [
       /mr\.?\s+([a-z][a-z\s]+)/gi,
@@ -171,13 +197,13 @@ export function AIInvoiceGenerator() {
     for (const a of amounts) if (closing.test(a.ctx)) servicePrice = a.value; // keep last
     if (!servicePrice && amounts.length) servicePrice = Math.max(...amounts.map((a) => a.value));
 
-    // Amount paid: prefer last amount near broad pay words
+    // Amount paid: prefer last amount near pay words
     let amountPaid = 0;
     const payAny =
       /(paid|pay(?:ing)?|transfer(?:red)?|deposit|upfront|advance|part\s*payment|sent|sending|proof|receipt)/i;
     for (const a of amounts) if (payAny.test(a.ctx)) amountPaid = a.value;
 
-    // Inference fallbacks
+    // Fallback inference
     if (!amountPaid && /50%|half|fifty percent/i.test(lower) && servicePrice) {
       amountPaid = Math.round(servicePrice * 0.5);
     } else if (!amountPaid && /(deposit|upfront|advance|part\s*payment)/i.test(lower) && amounts.length >= 2) {
@@ -192,8 +218,7 @@ export function AIInvoiceGenerator() {
     if (/toyota|camry/i.test(chat)) vehicleType = "Toyota Camry Charter Service";
     if (/yacht|elegance/i.test(chat)) vehicleType = "Elegance Yacht Charter";
 
-    // Optional debug
-    // @ts-ignore
+    // @ts-ignore small debug hook
     (window as any).__invoice_debug = { amounts, servicePrice, amountPaid };
 
     return {
@@ -206,12 +231,15 @@ export function AIInvoiceGenerator() {
     };
   };
 
-  // ---------- Build invoice from hybrid result ----------
+  // ---------- Build invoice (hybrid + optional AI merge) ----------
   const extractInvoiceData = async (chat: string): Promise<InvoiceData> => {
-    const ex = hybridExtraction(chat);
+    const exHybrid = hybridExtraction(chat);
+    const exAI = await tryGemini(chat);
+    const ex: InvoiceLike = { ...exHybrid, ...(exAI || {}) };
 
+    // business rules
     let notes = "Professional charter service with driver and fuel included.";
-    let finalRate = ex.servicePrice;
+    let finalRate = Number(ex.servicePrice || 0);
 
     // fallback price by SKU only if extractor missed
     if (!finalRate || finalRate < 1000) {
@@ -221,11 +249,11 @@ export function AIInvoiceGenerator() {
       else finalRate = 100000;
     }
 
-    if (/first time|first timer/i.test(chat)) {
+    if (/first time|first timer/i.test(chat) || ex.isFirstTimer) {
       notes = "First timer discount applied. Professional charter service with driver and fuel included.";
       finalRate = Math.round(finalRate * 0.9);
     }
-    if (/emergency/i.test(chat)) {
+    if (/emergency/i.test(chat) || ex.isEmergency) {
       notes = "Emergency response service with immediate dispatch.";
       finalRate = Math.round(finalRate * 1.2);
     }
@@ -234,9 +262,11 @@ export function AIInvoiceGenerator() {
     const subtotal = finalRate * quantity;
     const vat = includeVAT ? Math.round(subtotal * 0.075) : 0;
     const total = subtotal + vat;
-    const balanceDue = total - (ex.amountPaid || 0);
+    const amountPaid = Number(ex.amountPaid || 0);
+    const balanceDue = total - amountPaid;
 
-    const serviceDateObj = new Date(ex.serviceDate.split("/").reverse().join("-"));
+    const serviceDateStr = ex.serviceDate || new Date().toLocaleDateString("en-GB");
+    const serviceDateObj = new Date(serviceDateStr.split("/").reverse().join("-"));
     const dueDate = new Date(serviceDateObj);
     dueDate.setDate(serviceDateObj.getDate() + 1);
 
@@ -244,17 +274,17 @@ export function AIInvoiceGenerator() {
 
     return {
       invoiceNumber,
-      customerName: ex.customerName,
-      serviceDate: ex.serviceDate,
+      customerName: ex.customerName || "Valued Customer",
+      serviceDate: serviceDateStr,
       dueDate: dueDate.toLocaleDateString("en-GB"),
-      vehicle: ex.vehicleType,
+      vehicle: ex.vehicleType || "Charter Service",
       duration: ex.duration || "Full day service",
       rate: finalRate,
       quantity,
       subtotal,
       vat,
       total,
-      amountPaid: ex.amountPaid || 0,
+      amountPaid,
       balanceDue,
       notes,
       terms: "Payment terms as agreed in conversation",
@@ -266,6 +296,7 @@ export function AIInvoiceGenerator() {
   async function ensureHtml2pdf() {
     if (!_html2pdfBundle) {
       const mod = await import("html2pdf.js/dist/html2pdf.bundle.min.js");
+      // @ts-ignore
       _html2pdfBundle = mod?.default ?? (window as any).html2pdf;
     }
     return _html2pdfBundle;
@@ -371,7 +402,7 @@ export function AIInvoiceGenerator() {
       const data = await extractInvoiceDataWithAI(whatsappChat);
       setInvoiceData(data);
       setReceiptData(generateReceiptData(data));
-      toast({ title: "Invoice & Receipt generated", description: "Hybrid extraction completed." });
+      toast({ title: "Invoice & Receipt generated", description: "Extraction completed." });
     } catch (e) {
       toast({
         title: "Error generating invoice",
@@ -487,357 +518,4 @@ export function AIInvoiceGenerator() {
   <style>
     body { font-family: 'Courier New', monospace; margin: 40px; background-color: #f9f9f9;
            display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-    .receipt { background: white; padding: 30px; border: 2px solid #000; max-width: 400px; text-align: center; }
-    .company-name { font-size: 18px; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; }
-    .datetime { font-size: 14px; margin-bottom: 15px; }
-    .transaction-info { text-align: left; margin: 20px 0; font-size: 14px; }
-    .amount-line { display: flex; justify-content: space-between; margin: 5px 0; }
-    .total-line { font-weight: bold; border-top: 1px solid #000; padding-top: 5px; margin-top: 10px; }
-    .footer { margin-top: 20px; font-size: 12px; }
-    .company-footer { margin-top: 15px; font-size: 14px; font-weight: bold; }
-  </style>
-</head>
-<body>
-  <div class="receipt">
-    <div class="company-name">BRIDGEOCEAN LIMITED</div>
-    <div class="datetime">${receiptData.timestamp}</div>
-
-    <div class="transaction-info">
-      <div>TRANS ${receiptData.transactionId}</div>
-      <div>MCC ${receiptData.mccCode}</div>
-      <div>PAYMENT - ${receiptData.paymentMethod}</div>
-    </div>
-
-    <div class="transaction-info">
-      <div class="amount-line"><span>SUBTOTAL:</span><span>₦${receiptData.subtotal.toLocaleString()}.00</span></div>
-      <div class="amount-line"><span>SERVICE:</span><span>₦${receiptData.serviceCharge.toLocaleString()}.00</span></div>
-      <div class="amount-line total-line"><span>TOTAL:</span><span>₦${receiptData.total.toLocaleString()}.00</span></div>
-    </div>
-
-    <div class="footer"><div>PLEASE COME AGAIN</div><div>THANK YOU</div></div>
-    <div class="company-footer">...........BRIDGEOCEAN LIMITED...........</div>
-  </div>
-</body>
-</html>`;
-      await generatePDF(receiptContent, `Receipt-${receiptData.transactionId}-Bridgeocean.pdf`);
-      toast({ title: "Receipt downloaded", description: `#${receiptData.transactionId}` });
-    } catch (error: any) {
-      toast({
-        title: "PDF generation failed",
-        description: error?.message ?? "Downloaded as HTML instead",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGeneratingReceipt(false);
-    }
-  };
-
-  // ---------- UI helpers ----------
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 }).format(amount);
-
-  const exampleChats = [
-    `Chika: Good afternoon! My name is Chika. How can I assist you today?
-Mr. Adebayo: Hi Chika. I need a quote for a two-day charter in Lagos for a corporate event with 20 guests.
-Chika: I'd recommend our "Elegance" yacht. The standard two-day charter rate is NGN 3,500,000.
-Mr. Adebayo: That's over budget. I'm looking to spend around NGN 2.8 million.
-Chika: We can offer a 10% discount → NGN 3,150,000.
-Mr. Adebayo: Can you meet us at NGN 2.85 million to close the deal?
-Chika: We agree to NGN 2.85 million (yacht + crew, no dinner).
-Mr. Adebayo: Great — I'll transfer NGN 1,000,000 now as deposit.`,
-
-    `Customer: Hi, I need to book your GMC Terrain for tomorrow
-Bridgeocean: Hello! That's ₦200,000 for 10 hours (minimum). Can you pay 50% now?
-Customer: Yes, my name is John Adebayo. I'll pay ₦100,000 now
-Bridgeocean: Perfect, booking confirmed`,
-
-    `Customer: Emergency! Need a car now at VI
-Bridgeocean: GMC Terrain available, ₦240,000 emergency rate
-Customer: That's fine, I'll make full payment
-Bridgeocean: Confirmed.`,
-  ];
-
-  // ---------- JSX ----------
-  return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5" />
-            Hybrid AI Invoice & Receipt Generator
-          </CardTitle>
-          <CardDescription>Extracts amounts/names/dates and applies business logic to assign roles.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">WhatsApp Chat Conversation</label>
-            <Textarea
-              placeholder="Paste your WhatsApp conversation here..."
-              value={whatsappChat}
-              onChange={(e) => setWhatsappChat(e.target.value)}
-              rows={8}
-              className="resize-none font-mono text-sm"
-            />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Checkbox id="include-vat" checked={includeVAT} onCheckedChange={(v) => setIncludeVAT(!!v)} />
-            <label htmlFor="include-vat" className="text-sm font-medium">
-              Include 7.5% VAT in calculations
-            </label>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Example Conversations (Click to Use)</label>
-            <div className="grid grid-cols-1 gap-2">
-              {exampleChats.map((example, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setWhatsappChat(example)}
-                  className="text-xs h-auto p-3 text-left justify-start"
-                >
-                  <div className="truncate">
-                    <strong>Example {index + 1}:</strong> {example.split("\n")[0].substring(0, 70)}...
-                  </div>
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <Button onClick={handleGenerateInvoice} className="w-full" disabled={isGenerating || !whatsappChat.trim()}>
-            {isGenerating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Extracting…
-              </>
-            ) : (
-              <>
-                <Brain className="mr-2 h-4 w-4" />
-                Generate Invoice & Receipt
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {invoiceData && receiptData && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Generated Documents
-            </CardTitle>
-            <CardDescription>Preview and download as PDF</CardDescription>
-
-            <div className="flex gap-2 mt-4">
-              <Button
-                variant={activeView === "invoice" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveView("invoice")}
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                Invoice Preview
-              </Button>
-              <Button
-                variant={activeView === "receipt" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveView("receipt")}
-              >
-                <Receipt className="mr-2 h-4 w-4" />
-                Receipt Preview
-              </Button>
-            </div>
-          </CardHeader>
-
-          <CardContent className="space-y-6">
-            {activeView === "invoice" && (
-              <>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-4">
-                    <img
-                      src="/images/bridgeocean-logo.jpg"
-                      crossOrigin="anonymous"
-                      alt="Bridgeocean Logo"
-                      className="h-16 w-16 object-contain"
-                    />
-                    <div>
-                      <h2 className="text-2xl font-bold">INVOICE</h2>
-                      <p className="text-lg font-semibold text-blue-600">#{invoiceData.invoiceNumber}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <h3 className="font-semibold text-lg">Bridgeocean Limited</h3>
-                    <p className="text-sm text-muted-foreground">Premium Charter Services</p>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="font-semibold mb-2">Bill To:</h4>
-                    <p className="text-lg">{invoiceData.customerName}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="font-medium">Service Date:</span>
-                      <span>{invoiceData.serviceDate}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Due Date:</span>
-                      <span>{invoiceData.dueDate}</span>
-                    </div>
-                    <div className="flex justify-between text-lg font-semibold">
-                      <span>Balance Due:</span>
-                      <span className="text-blue-600">{formatCurrency(invoiceData.balanceDue)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <div className="grid grid-cols-4 gap-4 font-semibold border-b pb-2 mb-4">
-                    <span>Item</span>
-                    <span>Quantity</span>
-                    <span>Rate</span>
-                    <span className="text-right">Amount</span>
-                  </div>
-                  <div className="grid grid-cols-4 gap-4 py-2">
-                    <span>
-                      {invoiceData.vehicle} ({invoiceData.duration})
-                    </span>
-                    <span>{invoiceData.quantity}</span>
-                    <span>{formatCurrency(invoiceData.rate)}</span>
-                    <span className="text-right">{formatCurrency(invoiceData.subtotal)}</span>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Subtotal:</span>
-                    <span>{formatCurrency(invoiceData.subtotal)}</span>
-                  </div>
-                  {invoiceData.vat > 0 && (
-                    <div className="flex justify-between">
-                      <span>VAT (7.5%):</span>
-                      <span>{formatCurrency(invoiceData.vat)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-lg font-semibold border-t pt-2">
-                    <span>Total:</span>
-                    <span>{formatCurrency(invoiceData.total)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Amount Paid:</span>
-                    <span>{formatCurrency(invoiceData.amountPaid)}</span>
-                  </div>
-                  <div className="flex justify-between text-lg font-semibold text-blue-600">
-                    <span>Balance Due:</span>
-                    <span>{formatCurrency(invoiceData.balanceDue)}</span>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {activeView === "receipt" && (
-              <>
-                <div className="max-w-md mx-auto bg-gray-50 p-6 border-2 border-gray-300 font-mono text-center">
-                  <div className="text-lg font-bold mb-2">BRIDGEOCEAN LIMITED</div>
-                  <div className="text-sm mb-4">{receiptData.timestamp}</div>
-
-                  <div className="text-left space-y-1 mb-4">
-                    <div>TRANS {receiptData.transactionId}</div>
-                    <div>MCC {receiptData.mccCode}</div>
-                    <div>PAYMENT - {receiptData.paymentMethod}</div>
-                  </div>
-
-                  <div className="text-left space-y-1 mb-4">
-                    <div className="flex justify-between">
-                      <span>SUBTOTAL:</span>
-                      <span>₦{receiptData.subtotal.toLocaleString()}.00</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>SERVICE:</span>
-                      <span>₦{receiptData.serviceCharge.toLocaleString()}.00</span>
-                    </div>
-                    <div className="flex justify-between font-bold border-t pt-1">
-                      <span>TOTAL:</span>
-                      <span>₦{receiptData.total.toLocaleString()}.00</span>
-                    </div>
-                  </div>
-
-                  <div className="text-sm space-y-1 mb-4">
-                    <div>PLEASE COME AGAIN</div>
-                    <div>THANK YOU</div>
-                  </div>
-
-                  <div className="text-sm font-bold">...........BRIDGEOCEAN LIMITED...........</div>
-                </div>
-              </>
-            )}
-
-            <div className="flex gap-2 pt-4">
-              <Button onClick={handleDownloadInvoice} disabled={isGeneratingPDF} className="flex-1">
-                {isGeneratingPDF ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating PDF…
-                  </>
-                ) : (
-                  <>
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Invoice (PDF)
-                  </>
-                )}
-              </Button>
-
-              <Button onClick={handleDownloadReceipt} disabled={isGeneratingReceipt} variant="outline" className="flex-1">
-                {isGeneratingReceipt ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating PDF…
-                  </>
-                ) : (
-                  <>
-                    <Receipt className="mr-2 h-4 w-4" />
-                    Download Receipt (PDF)
-                  </>
-                )}
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (!invoiceData || !receiptData) return;
-                  const text =
-                    activeView === "invoice"
-                      ? `Invoice #${invoiceData.invoiceNumber}
-Customer: ${invoiceData.customerName}
-Service: ${invoiceData.vehicle}
-Total: ${formatCurrency(invoiceData.total)}
-Balance Due: ${formatCurrency(invoiceData.balanceDue)}`
-                      : `Receipt ${receiptData.transactionId}
-Customer: ${receiptData.customerName}
-Amount: ₦${receiptData.total.toLocaleString()}
-Payment: ${receiptData.paymentMethod}`;
-                  navigator.clipboard.writeText(text);
-                  toast({
-                    title: "Copied to clipboard",
-                    description: `${activeView === "invoice" ? "Invoice" : "Receipt"} details copied.`,
-                  });
-                }}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-}
+    .receipt { background: white;
