@@ -43,13 +43,26 @@ export function AIInvoiceGenerator() {
   const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  const [isGeneratingReceipt, setIsGeneratingReceipt] = useState(false);
+  const [isGeneratingInvoiceHTML, setIsGeneratingInvoiceHTML] = useState(false);
+  const [isGeneratingReceiptHTML, setIsGeneratingReceiptHTML] = useState(false);
   const [activeView, setActiveView] = useState<"invoice" | "receipt">("invoice");
   const [includeVAT, setIncludeVAT] = useState(false);
   const { toast } = useToast();
 
-  // ---------- Receipt helper (clamp to avoid ₦0/NaN) ----------
+  // ----- tiny utility: save an .html file -----
+  const downloadHTMLFile = (html: string, filename: string) => {
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  // ---------- Receipt helper (force equals Invoice Total) ----------
   const generateReceiptData = (invoice: InvoiceData): ReceiptData => {
     const now = new Date();
     const timestamp =
@@ -60,23 +73,23 @@ export function AIInvoiceGenerator() {
     const transactionId = Math.random().toString(36).substring(2, 9).toUpperCase();
     const mccCode = "4121" + Math.random().toString(36).substring(2, 6).toUpperCase();
 
-    const paidRaw = Number(invoice.amountPaid ?? 0);
-    const totalRaw = Number(invoice.total ?? 0);
-    const paid = Math.max(0, Math.min(isFinite(totalRaw) ? totalRaw : Number.MAX_SAFE_INTEGER, isFinite(paidRaw) ? paidRaw : 0));
+    // IMPORTANT: mirror invoice total on the receipt
+    const total = Number(invoice.total ?? 0);
+    const safeTotal = isFinite(total) ? Math.max(0, total) : 0;
 
     return {
       transactionId,
       mccCode,
       paymentMethod: "Bank Transfer",
-      subtotal: paid,
+      subtotal: safeTotal,
       serviceCharge: 0,
-      total: paid,
+      total: safeTotal,
       timestamp,
       customerName: invoice.customerName,
     };
   };
 
-  // ---------- Hybrid extractor (k/m/million + payment detection) ----------
+  // ---------- Hybrid extractor (k/m/million + strong payment detection) ----------
   const hybridExtraction = (chat: string) => {
     const lower = chat.toLowerCase();
 
@@ -260,93 +273,6 @@ export function AIInvoiceGenerator() {
     };
   };
 
-  // ---------- Robust PDF generation (hidden iframe + bundled build) ----------
-  let _html2pdfBundle: any | null = null;
-  async function ensureHtml2pdf() {
-    if (!_html2pdfBundle) {
-      const mod = await import("html2pdf.js/dist/html2pdf.bundle.min.js");
-      _html2pdfBundle = mod?.default ?? (window as any).html2pdf;
-    }
-    return _html2pdfBundle;
-  }
-
-  async function waitForAssetsIn(doc: Document) {
-    try {
-      // @ts-ignore
-      await doc.fonts?.ready;
-    } catch {}
-    const imgs = Array.from(doc.images) as HTMLImageElement[];
-    await Promise.all(
-      imgs.map((img) => {
-        try {
-          if (!img.crossOrigin) img.crossOrigin = "anonymous";
-        } catch {}
-        return img.complete
-          ? Promise.resolve()
-          : new Promise((res) => {
-              img.addEventListener("load", res, { once: true });
-              img.addEventListener("error", res, { once: true });
-            });
-      })
-    );
-  }
-
-  const generatePDF = async (htmlContent: string, filename: string) => {
-    // render into a hidden iframe (prevents offscreen/viewport issues)
-    const frame = document.createElement("iframe");
-    frame.style.position = "fixed";
-    frame.style.right = "0";
-    frame.style.bottom = "0";
-    frame.style.width = "0";
-    frame.style.height = "0";
-    frame.style.border = "0";
-    document.body.appendChild(frame);
-
-    try {
-      const doc = frame.contentDocument!;
-      doc.open();
-      doc.write(htmlContent);
-      doc.close();
-
-      await waitForAssetsIn(doc);
-
-      const html2pdf = await ensureHtml2pdf();
-      const root = doc.body;
-
-      const opts = {
-        margin: 10,
-        filename,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          allowTaint: false,
-          backgroundColor: "#ffffff",
-          logging: false,
-          windowWidth: root.scrollWidth || 794,
-          windowHeight: root.scrollHeight || 1123,
-        },
-        jsPDF: { unit: "mm" as const, format: "a4" as const, orientation: "portrait" as const },
-      };
-
-      await html2pdf().set(opts).from(root).toPdf().get("pdf").then((pdf: any) => pdf.save(filename));
-    } catch (err) {
-      // graceful fallback: download HTML
-      const blob = new Blob([htmlContent], { type: "text/html" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename.replace(/\.pdf$/i, ".html");
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      throw new Error("PDF generation failed; HTML downloaded instead.");
-    } finally {
-      frame.remove();
-    }
-  };
-
   // ---------- Actions ----------
   const extractInvoiceDataWithAI = async (chat: string) => {
     setIsGenerating(true);
@@ -370,7 +296,7 @@ export function AIInvoiceGenerator() {
     try {
       const data = await extractInvoiceDataWithAI(whatsappChat);
       setInvoiceData(data);
-      setReceiptData(generateReceiptData(data));
+      setReceiptData(generateReceiptData(data)); // receipt mirrors invoice total
       toast({ title: "Invoice & Receipt generated", description: "Hybrid extraction completed." });
     } catch (e) {
       toast({
@@ -381,17 +307,15 @@ export function AIInvoiceGenerator() {
     }
   };
 
-  const handleDownloadInvoice = async () => {
-    if (!invoiceData) return;
-    setIsGeneratingPDF(true);
-    try {
-      const htmlContent = `<!DOCTYPE html>
+  // ---------- HTML builders (no PDF, just HTML download) ----------
+  const buildInvoiceHTML = (inv: InvoiceData) => `<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>Invoice ${invoiceData.invoiceNumber}</title>
+  <meta charset="utf-8" />
+  <title>Invoice ${inv.invoiceNumber}</title>
+  <meta name="color-scheme" content="light only" />
   <style>
-    body { font-family: Arial, sans-serif; margin: 40px; }
+    body { font-family: Arial, sans-serif; margin: 40px; color: #111; background:#fff; }
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
     .invoice-title { font-size: 32px; font-weight: bold; }
     .invoice-number { font-size: 18px; color: #2563eb; font-weight: bold; }
@@ -402,7 +326,7 @@ export function AIInvoiceGenerator() {
     .items-table th, .items-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
     .items-table th { background-color: #f5f5f5; }
     .totals { margin-left: auto; width: 300px; }
-    .total-row { display: flex; justify-content: space-between; padding: 5px 0; }
+    .total-row { display: flex; justify-content: space-between; padding: 6px 0; }
     .total-final { font-weight: bold; font-size: 18px; border-top: 2px solid #000; padding-top: 10px; }
     .notes { margin-top: 30px; }
   </style>
@@ -411,7 +335,7 @@ export function AIInvoiceGenerator() {
   <div class="header">
     <div>
       <div class="invoice-title">INVOICE</div>
-      <div class="invoice-number">#${invoiceData.invoiceNumber}</div>
+      <div class="invoice-number">#${inv.invoiceNumber}</div>
     </div>
     <div class="company-info">
       <h2>Bridgeocean Limited</h2>
@@ -421,13 +345,13 @@ export function AIInvoiceGenerator() {
 
   <div class="bill-to">
     <h3>Bill To:</h3>
-    <p style="font-size: 18px;">${invoiceData.customerName}</p>
+    <p style="font-size: 18px;">${inv.customerName}</p>
   </div>
 
   <div class="dates">
-    <div><strong>Service Date:</strong> ${invoiceData.serviceDate}</div>
-    <div><strong>Due Date:</strong> ${invoiceData.dueDate}</div>
-    <div><strong>Balance Due:</strong> ₦${invoiceData.balanceDue.toLocaleString()}</div>
+    <div><strong>Service Date:</strong> ${inv.serviceDate}</div>
+    <div><strong>Due Date:</strong> ${inv.dueDate}</div>
+    <div><strong>Balance Due:</strong> ₦${inv.balanceDue.toLocaleString()}</div>
   </div>
 
   <table class="items-table">
@@ -436,52 +360,37 @@ export function AIInvoiceGenerator() {
     </thead>
     <tbody>
       <tr>
-        <td>${invoiceData.vehicle} (${invoiceData.duration})</td>
-        <td>${invoiceData.quantity}</td>
-        <td>₦${invoiceData.rate.toLocaleString()}</td>
-        <td>₦${invoiceData.subtotal.toLocaleString()}</td>
+        <td>${inv.vehicle} (${inv.duration})</td>
+        <td>${inv.quantity}</td>
+        <td>₦${inv.rate.toLocaleString()}</td>
+        <td>₦${inv.subtotal.toLocaleString()}</td>
       </tr>
     </tbody>
   </table>
 
   <div class="totals">
-    <div class="total-row"><span>Subtotal:</span><span>₦${invoiceData.subtotal.toLocaleString()}</span></div>
-    ${invoiceData.vat > 0 ? `<div class="total-row"><span>VAT (7.5%):</span><span>₦${invoiceData.vat.toLocaleString()}</span></div>` : ""}
-    <div class="total-row total-final"><span>Total:</span><span>₦${invoiceData.total.toLocaleString()}</span></div>
-    <div class="total-row"><span>Amount Paid:</span><span>₦${invoiceData.amountPaid.toLocaleString()}</span></div>
-    <div class="total-row total-final"><span>Balance Due:</span><span>₦${invoiceData.balanceDue.toLocaleString()}</span></div>
+    <div class="total-row"><span>Subtotal:</span><span>₦${inv.subtotal.toLocaleString()}</span></div>
+    ${inv.vat > 0 ? `<div class="total-row"><span>VAT (7.5%):</span><span>₦${inv.vat.toLocaleString()}</span></div>` : ""}
+    <div class="total-row total-final"><span>Total:</span><span>₦${inv.total.toLocaleString()}</span></div>
+    <div class="total-row"><span>Amount Paid:</span><span>₦${inv.amountPaid.toLocaleString()}</span></div>
+    <div class="total-row total-final"><span>Balance Due:</span><span>₦${inv.balanceDue.toLocaleString()}</span></div>
   </div>
 
   <div class="notes">
     <h4>Notes:</h4>
-    <p>${invoiceData.notes}</p>
+    <p>${inv.notes}</p>
     <h4>Terms:</h4>
-    <p>${invoiceData.terms}</p>
+    <p>${inv.terms}</p>
   </div>
 </body>
 </html>`;
-      await generatePDF(htmlContent, `Invoice-${invoiceData.invoiceNumber}-Bridgeocean.pdf`);
-      toast({ title: "Invoice downloaded", description: `#${invoiceData.invoiceNumber}` });
-    } catch (error: any) {
-      toast({
-        title: "PDF generation failed",
-        description: error?.message ?? "Downloaded as HTML instead",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGeneratingPDF(false);
-    }
-  };
 
-  const handleDownloadReceipt = async () => {
-    if (!receiptData) return;
-    setIsGeneratingReceipt(true);
-    try {
-      const receiptContent = `<!DOCTYPE html>
+  const buildReceiptHTML = (r: ReceiptData) => `<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>Receipt ${receiptData.transactionId}</title>
+  <meta charset="utf-8" />
+  <title>Receipt ${r.transactionId}</title>
+  <meta name="color-scheme" content="light only" />
   <style>
     body { 
       font-family: 'Courier New', monospace; 
@@ -491,13 +400,15 @@ export function AIInvoiceGenerator() {
       justify-content: center;
       align-items: center;
       min-height: 100vh;
+      color: #111;
     }
     .receipt {
       background: white;
       padding: 30px;
       border: 2px solid #000;
-      max-width: 400px;
+      max-width: 420px;
       text-align: center;
+      width: 100%;
     }
     .company-name {
       font-size: 18px;
@@ -517,12 +428,12 @@ export function AIInvoiceGenerator() {
     .amount-line {
       display: flex;
       justify-content: space-between;
-      margin: 5px 0;
+      margin: 6px 0;
     }
     .total-line {
       font-weight: bold;
       border-top: 1px solid #000;
-      padding-top: 5px;
+      padding-top: 6px;
       margin-top: 10px;
     }
     .footer {
@@ -539,27 +450,18 @@ export function AIInvoiceGenerator() {
 <body>
   <div class="receipt">
     <div class="company-name">BRIDGEOCEAN LIMITED</div>
-    <div class="datetime">${receiptData.timestamp}</div>
+    <div class="datetime">${r.timestamp}</div>
     
     <div class="transaction-info">
-      <div>TRANS ${receiptData.transactionId}</div>
-      <div>MCC ${receiptData.mccCode}</div>
-      <div>PAYMENT - ${receiptData.paymentMethod}</div>
+      <div>TRANS ${r.transactionId}</div>
+      <div>MCC ${r.mccCode}</div>
+      <div>PAYMENT - ${r.paymentMethod}</div>
     </div>
 
     <div class="transaction-info">
-      <div class="amount-line">
-        <span>SUBTOTAL:</span>
-        <span>₦${receiptData.subtotal.toLocaleString()}.00</span>
-      </div>
-      <div class="amount-line">
-        <span>SERVICE:</span>
-        <span>₦${receiptData.serviceCharge.toLocaleString()}.00</span>
-      </div>
-      <div class="amount-line total-line">
-        <span>TOTAL:</span>
-        <span>₦${receiptData.total.toLocaleString()}.00</span>
-      </div>
+      <div class="amount-line"><span>SUBTOTAL:</span><span>₦${r.subtotal.toLocaleString()}.00</span></div>
+      <div class="amount-line"><span>SERVICE:</span><span>₦${r.serviceCharge.toLocaleString()}.00</span></div>
+      <div class="amount-line total-line"><span>TOTAL:</span><span>₦${r.total.toLocaleString()}.00</span></div>
     </div>
 
     <div class="footer">
@@ -567,22 +469,35 @@ export function AIInvoiceGenerator() {
       <div>THANK YOU</div>
     </div>
 
-    <div class="company-footer">
-      ...........BRIDGEOCEAN LIMITED...........
-    </div>
+    <div class="company-footer">...........BRIDGEOCEAN LIMITED...........</div>
   </div>
 </body>
 </html>`;
-      await generatePDF(receiptContent, `Receipt-${receiptData.transactionId}-Bridgeocean.pdf`);
-      toast({ title: "Receipt downloaded", description: `#${receiptData.transactionId}` });
-    } catch (error: any) {
-      toast({
-        title: "PDF generation failed",
-        description: error?.message ?? "Downloaded as HTML instead",
-        variant: "destructive",
-      });
+
+  // ---------- Download handlers (HTML only) ----------
+  const handleDownloadInvoiceHTML = () => {
+    if (!invoiceData) return;
+    try {
+      const html = buildInvoiceHTML(invoiceData);
+      downloadHTMLFile(html, `Invoice-${invoiceData.invoiceNumber}-Bridgeocean.html`);
+      toast({ title: "Invoice downloaded (HTML)", description: `#${invoiceData.invoiceNumber}` });
+    } catch (e: any) {
+      toast({ title: "Download failed", description: e?.message ?? "Unknown error", variant: "destructive" });
     } finally {
-      setIsGeneratingReceipt(false);
+      setIsGeneratingInvoiceHTML(false);
+    }
+  };
+
+  const handleDownloadReceiptHTML = () => {
+    if (!receiptData) return;
+    try {
+      const html = buildReceiptHTML(receiptData);
+      downloadHTMLFile(html, `Receipt-${receiptData.transactionId}-Bridgeocean.html`);
+      toast({ title: "Receipt downloaded (HTML)", description: `#${receiptData.transactionId}` });
+    } catch (e: any) {
+      toast({ title: "Download failed", description: e?.message ?? "Unknown error", variant: "destructive" });
+    } finally {
+      setIsGeneratingReceiptHTML(false);
     }
   };
 
@@ -681,7 +596,7 @@ Bridgeocean: Confirmed.`,
               <FileText className="h-5 w-5" />
               Generated Documents
             </CardTitle>
-            <CardDescription>Preview and download as PDF</CardDescription>
+            <CardDescription>Preview and download as HTML</CardDescription>
 
             <div className="flex gap-2 mt-4">
               <Button
@@ -834,30 +749,47 @@ Bridgeocean: Confirmed.`,
             )}
 
             <div className="flex gap-2 pt-4">
-              <Button onClick={handleDownloadInvoice} disabled={isGeneratingPDF} className="flex-1">
-                {isGeneratingPDF ? (
+              <Button
+                onClick={() => {
+                  if (!invoiceData) return;
+                  setIsGeneratingInvoiceHTML(true);
+                  handleDownloadInvoiceHTML();
+                }}
+                disabled={isGeneratingInvoiceHTML}
+                className="flex-1"
+              >
+                {isGeneratingInvoiceHTML ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating PDF…
+                    Building HTML…
                   </>
                 ) : (
                   <>
                     <Download className="mr-2 h-4 w-4" />
-                    Download Invoice (PDF)
+                    Download Invoice (HTML)
                   </>
                 )}
               </Button>
 
-              <Button onClick={handleDownloadReceipt} disabled={isGeneratingReceipt} variant="outline" className="flex-1">
-                {isGeneratingReceipt ? (
+              <Button
+                onClick={() => {
+                  if (!receiptData) return;
+                  setIsGeneratingReceiptHTML(true);
+                  handleDownloadReceiptHTML();
+                }}
+                disabled={isGeneratingReceiptHTML}
+                variant="outline"
+                className="flex-1"
+              >
+                {isGeneratingReceiptHTML ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating PDF…
+                    Building HTML…
                   </>
                 ) : (
                   <>
                     <Receipt className="mr-2 h-4 w-4" />
-                    Download Receipt (PDF)
+                    Download Receipt (HTML)
                   </>
                 )}
               </Button>
