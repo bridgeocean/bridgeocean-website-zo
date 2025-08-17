@@ -49,7 +49,7 @@ export function AIInvoiceGenerator() {
   const [includeVAT, setIncludeVAT] = useState(false);
   const { toast } = useToast();
 
-  // ---------- Receipt helper (with clamp) ----------
+  // ---------- Receipt helper (with clamp to avoid ₦0.00) ----------
   const generateReceiptData = (invoice: InvoiceData): ReceiptData => {
     const now = new Date();
     const timestamp =
@@ -60,8 +60,9 @@ export function AIInvoiceGenerator() {
     const transactionId = Math.random().toString(36).substring(2, 9).toUpperCase();
     const mccCode = "4121" + Math.random().toString(36).substring(2, 6).toUpperCase();
 
-    // (2) clamp amountPaid to [0, total]
-    const paid = Math.max(0, Math.min(invoice.amountPaid ?? 0, invoice.total ?? Number.MAX_SAFE_INTEGER));
+    const paidRaw = Number(invoice.amountPaid ?? 0);
+    const total = Number(invoice.total ?? 0);
+    const paid = Math.max(0, Math.min(isFinite(total) ? total : Number.MAX_SAFE_INTEGER, isFinite(paidRaw) ? paidRaw : 0));
 
     return {
       transactionId,
@@ -75,7 +76,7 @@ export function AIInvoiceGenerator() {
     };
   };
 
-  // ---------- Hybrid extractor (improved k/m/million + payment detection) ----------
+  // ---------- Hybrid extractor (k/m/million + strong payment detection) ----------
   const hybridExtraction = (chat: string) => {
     const lower = chat.toLowerCase();
 
@@ -84,7 +85,6 @@ export function AIInvoiceGenerator() {
 
     function pushAmount(value: number, index: number) {
       if (!Number.isFinite(value) || value < 1000) return;
-      // wider context helps classify
       const ctx = chat.slice(Math.max(0, index - 80), Math.min(chat.length, index + 80)).toLowerCase();
       amounts.push({ value: Math.round(value), index, ctx });
     }
@@ -165,13 +165,13 @@ export function AIInvoiceGenerator() {
     else if (durDaysNum) duration = `${durDaysNum[1]} days`;
     else if (twoDay) duration = `2 days`;
 
-    // Choose final service price: prefer the last amount around closing words
+    // Choose final service price: prefer last amount near closing words
     let servicePrice = 0;
     const closing = /(agree|deal|final|new total|close the deal|secure|bringing|reduce|price|rate|cost|total)/i;
     for (const a of amounts) if (closing.test(a.ctx)) servicePrice = a.value; // keep last
     if (!servicePrice && amounts.length) servicePrice = Math.max(...amounts.map((a) => a.value));
 
-    // Amount paid: prefer the last amount near broad pay words
+    // Amount paid: prefer last amount near broad pay words
     let amountPaid = 0;
     const payAny =
       /(paid|pay(?:ing)?|transfer(?:red)?|deposit|upfront|advance|part\s*payment|sent|sending|proof|receipt)/i;
@@ -192,7 +192,7 @@ export function AIInvoiceGenerator() {
     if (/toyota|camry/i.test(chat)) vehicleType = "Toyota Camry Charter Service";
     if (/yacht|elegance/i.test(chat)) vehicleType = "Elegance Yacht Charter";
 
-    // Optional: quick debug hook
+    // Optional debug
     // @ts-ignore
     (window as any).__invoice_debug = { amounts, servicePrice, amountPaid };
 
@@ -210,7 +210,6 @@ export function AIInvoiceGenerator() {
   const extractInvoiceData = async (chat: string): Promise<InvoiceData> => {
     const ex = hybridExtraction(chat);
 
-    // business rules
     let notes = "Professional charter service with driver and fuel included.";
     let finalRate = ex.servicePrice;
 
@@ -262,21 +261,22 @@ export function AIInvoiceGenerator() {
     };
   };
 
-  // ---------- Robust PDF generation (bundled build + waits) ----------
-  let _html2pdfPromise: Promise<any> | null = null;
-  async function loadHtml2pdf() {
-    if (!_html2pdfPromise) {
-      _html2pdfPromise = import("html2pdf.js/dist/html2pdf.bundle.min.js");
+  // ---------- Robust PDF generation (hidden iframe + bundled build) ----------
+  let _html2pdfBundle: any | null = null;
+  async function ensureHtml2pdf() {
+    if (!_html2pdfBundle) {
+      const mod = await import("html2pdf.js/dist/html2pdf.bundle.min.js");
+      _html2pdfBundle = mod?.default ?? (window as any).html2pdf;
     }
-    const mod = await _html2pdfPromise;
-    return (mod?.default ?? (globalThis as any).html2pdf) as any;
+    return _html2pdfBundle;
   }
-  async function waitForAssets(root: HTMLElement) {
+
+  async function waitForAssetsIn(doc: Document) {
     try {
       // @ts-ignore
-      await document.fonts?.ready;
+      await doc.fonts?.ready;
     } catch {}
-    const imgs = Array.from(root.querySelectorAll("img")) as HTMLImageElement[];
+    const imgs = Array.from(doc.images) as HTMLImageElement[];
     await Promise.all(
       imgs.map((img) => {
         try {
@@ -291,40 +291,46 @@ export function AIInvoiceGenerator() {
       })
     );
   }
-  function isIOSorSafari() {
-    const ua = navigator.userAgent;
-    const isIOS = /iPad|iPhone|iPod/.test(ua);
-    const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
-    return isIOS || isSafari;
-  }
 
   const generatePDF = async (htmlContent: string, filename: string) => {
-    const host = document.createElement("div");
-    host.style.position = "fixed";
-    host.style.left = "-99999px";
-    host.style.top = "0";
-    host.style.width = "794px"; // ~A4 width @ 96dpi
-    host.style.zIndex = "-1";
-    host.innerHTML = htmlContent;
-    document.body.appendChild(host);
+    // render into a hidden iframe (prevents offscreen/viewport issues)
+    const frame = document.createElement("iframe");
+    frame.style.position = "fixed";
+    frame.style.right = "0";
+    frame.style.bottom = "0";
+    frame.style.width = "0";
+    frame.style.height = "0";
+    frame.style.border = "0";
+    document.body.appendChild(frame);
 
     try {
-      const html2pdf = await loadHtml2pdf();
-      await waitForAssets(host);
+      const doc = frame.contentDocument!;
+      doc.open();
+      doc.write(htmlContent);
+      doc.close();
+
+      await waitForAssetsIn(doc);
+
+      const html2pdf = await ensureHtml2pdf();
+      const root = doc.body;
 
       const opts = {
         margin: 10,
         filename,
         image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, allowTaint: false, backgroundColor: "#ffffff", logging: false },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: "#ffffff",
+          logging: false,
+          windowWidth: root.scrollWidth || 794,
+          windowHeight: root.scrollHeight || 1123,
+        },
         jsPDF: { unit: "mm" as const, format: "a4" as const, orientation: "portrait" as const },
       };
 
-      if (isIOSorSafari()) {
-        await html2pdf().set(opts).from(host).toPdf().save();
-      } else {
-        await html2pdf().set(opts).from(host).save();
-      }
+      await html2pdf().set(opts).from(root).toPdf().get("pdf").then((pdf: any) => pdf.save(filename));
     } catch (err) {
       const blob = new Blob([htmlContent], { type: "text/html" });
       const url = URL.createObjectURL(blob);
@@ -337,7 +343,7 @@ export function AIInvoiceGenerator() {
       URL.revokeObjectURL(url);
       throw new Error("PDF generation failed; HTML downloaded instead.");
     } finally {
-      host.remove();
+      frame.remove();
     }
   };
 
@@ -650,7 +656,12 @@ Bridgeocean: Confirmed.`,
               <>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-4">
-                    <img src="/images/bridgeocean-logo.jpg" alt="Bridgeocean Logo" className="h-16 w-16 object-contain" />
+                    <img
+                      src="/images/bridgeocean-logo.jpg"
+                      crossOrigin="anonymous"
+                      alt="Bridgeocean Logo"
+                      className="h-16 w-16 object-contain"
+                    />
                     <div>
                       <h2 className="text-2xl font-bold">INVOICE</h2>
                       <p className="text-lg font-semibold text-blue-600">#{invoiceData.invoiceNumber}</p>
