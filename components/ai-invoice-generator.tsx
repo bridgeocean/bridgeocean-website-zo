@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +49,30 @@ export function AIInvoiceGenerator() {
   const [includeVAT, setIncludeVAT] = useState(false);
   const { toast } = useToast();
 
+  // NEW: data URL of the logo for downloaded HTML
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Loads /public/images/bridgeocean-logo.jpg and converts to data URL
+    const loadLogoAsDataURL = async (path: string) => {
+      try {
+        const res = await fetch(path, { cache: "force-cache" });
+        if (!res.ok) return;
+        const blob = await res.blob();
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+        setLogoDataUrl(dataUrl);
+      } catch {
+        // ignore: fallback is just no logo in downloaded HTML
+      }
+    };
+    loadLogoAsDataURL("/images/bridgeocean-logo.jpg");
+  }, []);
+
   // ----- tiny utility: save an .html file -----
   const downloadHTMLFile = (html: string, filename: string) => {
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
@@ -62,7 +86,7 @@ export function AIInvoiceGenerator() {
     URL.revokeObjectURL(url);
   };
 
-  // ---------- Receipt helper (force equals Invoice Total) ----------
+  // ---------- Receipt helper (mirror Invoice Total) ----------
   const generateReceiptData = (invoice: InvoiceData): ReceiptData => {
     const now = new Date();
     const timestamp =
@@ -73,7 +97,6 @@ export function AIInvoiceGenerator() {
     const transactionId = Math.random().toString(36).substring(2, 9).toUpperCase();
     const mccCode = "4121" + Math.random().toString(36).substring(2, 6).toUpperCase();
 
-    // IMPORTANT: mirror invoice total on the receipt
     const total = Number(invoice.total ?? 0);
     const safeTotal = isFinite(total) ? Math.max(0, total) : 0;
 
@@ -89,7 +112,7 @@ export function AIInvoiceGenerator() {
     };
   };
 
-  // ---------- Hybrid extractor (k/m/million + strong payment detection) ----------
+  // ---------- Hybrid extractor ----------
   const hybridExtraction = (chat: string) => {
     const lower = chat.toLowerCase();
 
@@ -111,20 +134,16 @@ export function AIInvoiceGenerator() {
       return n;
     }
 
-    // ₦ / NGN / N + number + optional unit
     let m: RegExpExecArray | null;
     let re1 = /(₦|ngn|(?<![a-z])n)\s*([\d.,]+)\s*(million|m|thousand|k)?/gi;
     while ((m = re1.exec(chat)) !== null) pushAmount(parseAmount(m[2], m[3]), m.index);
 
-    // number + unit (e.g., 2.85 million, 250k)
     let re2 = /([\d.,]+)\s*(million|m|thousand|k)\b/gi;
     while ((m = re2.exec(chat)) !== null) pushAmount(parseAmount(m[1], m[2]), m.index);
 
-    // big comma numbers like 3,150,000
     let re3 = /(\d{1,3}(?:,\d{3})+)(?!\S)/g;
     while ((m = re3.exec(chat)) !== null) pushAmount(parseAmount(m[1]), m.index);
 
-    // Names (simple)
     const names: string[] = [];
     const nameRes = [
       /mr\.?\s+([a-z][a-z\s]+)/gi,
@@ -144,7 +163,6 @@ export function AIInvoiceGenerator() {
     }
     const customerName = names[0] || "Valued Customer";
 
-    // Date (today/tomorrow/weekday)
     const today = new Date();
     const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
     let serviceDate = new Date(today);
@@ -169,7 +187,6 @@ export function AIInvoiceGenerator() {
     }
     const serviceDateStr = serviceDate.toLocaleDateString("en-GB");
 
-    // Duration
     let duration = "Full day service";
     const durHours = chat.match(/(\d+)\s*hours?/i);
     const durDaysNum = chat.match(/(\d+)\s*days?/i);
@@ -178,19 +195,16 @@ export function AIInvoiceGenerator() {
     else if (durDaysNum) duration = `${durDaysNum[1]} days`;
     else if (twoDay) duration = "2 days";
 
-    // Choose final service price: prefer last amount near closing words
     let servicePrice = 0;
     const closing = /(agree|deal|final|new total|close the deal|secure|bringing|reduce|price|rate|cost|total)/i;
     for (const a of amounts) if (closing.test(a.ctx)) servicePrice = a.value;
     if (!servicePrice && amounts.length) servicePrice = Math.max(...amounts.map((a) => a.value));
 
-    // Amount paid: prefer last amount near payment words
     let amountPaid = 0;
     const payAny =
       /(paid|pay(?:ing)?|transfer(?:red)?|deposit|upfront|advance|part\s*payment|sent|sending|proof|receipt)/i;
     for (const a of amounts) if (payAny.test(a.ctx)) amountPaid = a.value;
 
-    // Inference fallbacks
     if (!amountPaid && /50%|half|fifty percent/i.test(lower) && servicePrice) {
       amountPaid = Math.round(servicePrice * 0.5);
     } else if (!amountPaid && /(deposit|upfront|advance|part\s*payment)/i.test(lower) && amounts.length >= 2) {
@@ -199,13 +213,11 @@ export function AIInvoiceGenerator() {
       amountPaid = servicePrice;
     }
 
-    // Vehicle guess
     let vehicleType = "Charter Service";
     if (/gmc|terrain/i.test(chat)) vehicleType = "GMC Terrain Charter Service";
     if (/toyota|camry/i.test(chat)) vehicleType = "Toyota Camry Charter Service";
     if (/yacht|elegance/i.test(chat)) vehicleType = "Elegance Yacht Charter";
 
-    // Optional debug
     (window as any).__invoice_debug = { amounts, servicePrice, amountPaid };
 
     return {
@@ -225,7 +237,6 @@ export function AIInvoiceGenerator() {
     let notes = "Professional charter service with driver and fuel included.";
     let finalRate = ex.servicePrice;
 
-    // fallback price by SKU only if extractor missed
     if (!finalRate || finalRate < 1000) {
       const lower = (ex.vehicleType || "").toLowerCase();
       if (lower.includes("gmc")) finalRate = 200000;
@@ -307,7 +318,7 @@ export function AIInvoiceGenerator() {
     }
   };
 
-  // ---------- HTML builders (no PDF, just HTML download) ----------
+  // ---------- HTML builders (embed logoDataUrl when available) ----------
   const buildInvoiceHTML = (inv: InvoiceData) => `<!DOCTYPE html>
 <html>
 <head>
@@ -320,6 +331,7 @@ export function AIInvoiceGenerator() {
     .invoice-title { font-size: 32px; font-weight: bold; }
     .invoice-number { font-size: 18px; color: #2563eb; font-weight: bold; }
     .company-info { text-align: right; }
+    .logo { width: 80px; height: 80px; object-fit: contain; display:block; margin-left:auto; }
     .bill-to { margin: 20px 0; }
     .dates { display: flex; justify-content: space-between; margin: 20px 0; }
     .items-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
@@ -338,6 +350,7 @@ export function AIInvoiceGenerator() {
       <div class="invoice-number">#${inv.invoiceNumber}</div>
     </div>
     <div class="company-info">
+      ${logoDataUrl ? `<img class="logo" src="${logoDataUrl}" alt="Bridgeocean Logo" />` : ``}
       <h2>Bridgeocean Limited</h2>
       <p>Premium Charter Services</p>
     </div>
@@ -410,45 +423,19 @@ export function AIInvoiceGenerator() {
       text-align: center;
       width: 100%;
     }
-    .company-name {
-      font-size: 18px;
-      font-weight: bold;
-      margin-bottom: 10px;
-      text-transform: uppercase;
-    }
-    .datetime {
-      font-size: 14px;
-      margin-bottom: 15px;
-    }
-    .transaction-info {
-      text-align: left;
-      margin: 20px 0;
-      font-size: 14px;
-    }
-    .amount-line {
-      display: flex;
-      justify-content: space-between;
-      margin: 6px 0;
-    }
-    .total-line {
-      font-weight: bold;
-      border-top: 1px solid #000;
-      padding-top: 6px;
-      margin-top: 10px;
-    }
-    .footer {
-      margin-top: 20px;
-      font-size: 12px;
-    }
-    .company-footer {
-      margin-top: 15px;
-      font-size: 14px;
-      font-weight: bold;
-    }
+    .logo { width: 70px; height: 70px; object-fit: contain; display:block; margin: 0 auto 8px; }
+    .company-name { font-size: 18px; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; }
+    .datetime { font-size: 14px; margin-bottom: 15px; }
+    .transaction-info { text-align: left; margin: 20px 0; font-size: 14px; }
+    .amount-line { display: flex; justify-content: space-between; margin: 6px 0; }
+    .total-line { font-weight: bold; border-top: 1px solid #000; padding-top: 6px; margin-top: 10px; }
+    .footer { margin-top: 20px; font-size: 12px; }
+    .company-footer { margin-top: 15px; font-size: 14px; font-weight: bold; }
   </style>
 </head>
 <body>
   <div class="receipt">
+    ${logoDataUrl ? `<img class="logo" src="${logoDataUrl}" alt="Bridgeocean Logo" />` : ``}
     <div class="company-name">BRIDGEOCEAN LIMITED</div>
     <div class="datetime">${r.timestamp}</div>
     
@@ -478,6 +465,7 @@ export function AIInvoiceGenerator() {
   const handleDownloadInvoiceHTML = () => {
     if (!invoiceData) return;
     try {
+      setIsGeneratingInvoiceHTML(true);
       const html = buildInvoiceHTML(invoiceData);
       downloadHTMLFile(html, `Invoice-${invoiceData.invoiceNumber}-Bridgeocean.html`);
       toast({ title: "Invoice downloaded (HTML)", description: `#${invoiceData.invoiceNumber}` });
@@ -491,6 +479,7 @@ export function AIInvoiceGenerator() {
   const handleDownloadReceiptHTML = () => {
     if (!receiptData) return;
     try {
+      setIsGeneratingReceiptHTML(true);
       const html = buildReceiptHTML(receiptData);
       downloadHTMLFile(html, `Receipt-${receiptData.transactionId}-Bridgeocean.html`);
       toast({ title: "Receipt downloaded (HTML)", description: `#${receiptData.transactionId}` });
@@ -623,6 +612,7 @@ Bridgeocean: Confirmed.`,
               <>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-4">
+                    {/* On-page preview still uses relative path */}
                     <img
                       src="/images/bridgeocean-logo.jpg"
                       crossOrigin="anonymous"
@@ -714,7 +704,16 @@ Bridgeocean: Confirmed.`,
             {activeView === "receipt" && (
               <>
                 <div className="max-w-md mx-auto bg-gray-50 p-6 border-2 border-gray-300 font-mono text-center">
-                  <div className="text-lg font-bold mb-2">BRIDGEOCEAN LIMITED</div>
+                  <div className="flex flex-col items-center">
+                    {/* On-page preview still uses relative path */}
+                    <img
+                      src="/images/bridgeocean-logo.jpg"
+                      crossOrigin="anonymous"
+                      alt="Bridgeocean Logo"
+                      className="h-14 w-14 object-contain mb-2"
+                    />
+                    <div className="text-lg font-bold mb-2">BRIDGEOCEAN LIMITED</div>
+                  </div>
                   <div className="text-sm mb-4">{receiptData.timestamp}</div>
 
                   <div className="text-left space-y-1 mb-4">
