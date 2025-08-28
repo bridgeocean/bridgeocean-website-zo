@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import * as ReactDOM from "react-dom";
 import { AIInvoiceGenerator } from "@/components/ai-invoice-generator";
 import { Button } from "@/components/ui/button";
 
@@ -13,43 +14,55 @@ Moniepoint Account details
 Moniepoint Account number: 8135261568
 Bridgeocean Limited`;
 
-/** Safely append Notes/Terms to WhatsApp share URLs */
-function appendNotesTermsToUrl(url: string, notes: string, terms: string) {
-  try {
-    const u = new URL(url);
-    const isWa =
-      u.hostname === "wa.me" ||
-      (u.hostname === "api.whatsapp.com" && u.pathname === "/send");
-    if (!isWa) return url;
+/** Likely invoice preview roots used by generators (we try them in order). */
+const INVOICE_ROOT_SELECTORS = [
+  "#invoice-preview",
+  "[data-invoice-root]",
+  ".invoice-preview",
+  "#invoice",
+  "#invoice-pdf",
+  "[data-pdf-root]",
+];
 
-    const original = u.searchParams.get("text") ?? ""; // already decoded by URLSearchParams
-    let merged = original;
-
-    const extra: string[] = [];
-    if (notes.trim()) extra.push(`\n\nNotes:\n${notes.trim()}`);
-    if (terms.trim()) extra.push(`\n\nTerms & Payment Details:\n${terms.trim()}`);
-    if (extra.length === 0) return url;
-
-    merged += extra.join("");
-    u.searchParams.set("text", merged); // URL will encode when stringified
-    return u.toString();
-  } catch {
-    return url;
+/** Try to find the invoice preview element so the Terms box gets included in PDF/print. */
+function findInvoiceRoot(base: HTMLElement | null): HTMLElement | null {
+  if (!base) return null;
+  for (const sel of INVOICE_ROOT_SELECTORS) {
+    const el = base.querySelector<HTMLElement>(sel);
+    if (el) return el;
   }
+  // Fall back to the first sizeable white-ish card that looks like a sheet
+  const cards = Array.from(
+    base.querySelectorAll<HTMLElement>("section,div")
+  ).filter((n) => {
+    const s = window.getComputedStyle(n);
+    const bg = s.backgroundColor.toLowerCase();
+    const w = n.getBoundingClientRect().width;
+    const h = n.getBoundingClientRect().height;
+    return (
+      w > 500 &&
+      h > 400 &&
+      (bg.includes("255") || bg.includes("white") || s.backgroundColor === "rgb(255, 255, 255)")
+    );
+  });
+  return cards[0] || null;
 }
 
 export function InvoiceNotesTermsBridge() {
-  const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const wrapperRef = React.useRef<HTMLDivElement | null>(null);
 
   // Notes & Terms state
   const [notes, setNotes] = React.useState<string>("");
   const [terms, setTerms] = React.useState<string>(DEFAULT_BANK_DETAILS);
   const [autoBank, setAutoBank] = React.useState<boolean>(true);
 
-  /** Allow your AI (Groq/OpenAI/etc.) to populate Notes/Terms from chat
-   *  by dispatching:
-   *  window.dispatchEvent(new CustomEvent("bridgeocean:setInvoiceMeta", { detail: { notes, terms } }));
-   */
+  // Show the box only after "Generate invoice" is clicked (as requested)
+  const [hasGenerated, setHasGenerated] = React.useState<boolean>(false);
+
+  // Where to render (portal target); if null we render locally inside the wrapper.
+  const [invoiceRoot, setInvoiceRoot] = React.useState<HTMLElement | null>(null);
+
+  /** Allow your AI (Groq/Grok/OpenAI/etc.) to populate Notes/Terms from chat */
   React.useEffect(() => {
     const handler = (e: Event) => {
       const { notes: n, terms: t } = (e as CustomEvent).detail || {};
@@ -60,55 +73,79 @@ export function InvoiceNotesTermsBridge() {
     return () => window.removeEventListener("bridgeocean:setInvoiceMeta", handler as EventListener);
   }, []);
 
-  // Patch window.open while mounted, so any wa.me share will get Notes/Terms appended
+  /** Detect clicks on buttons/links that look like "Generate invoice" inside the generator. */
   React.useEffect(() => {
-    const originalOpen = window.open;
-    window.open = function patchedOpen(url?: string | URL, target?: string, features?: string) {
-      const str = url?.toString() ?? "";
-      const patched = appendNotesTermsToUrl(str, notes, terms);
-      return originalOpen.call(window, patched, target, features) as Window | null;
-    };
+    const root = wrapperRef.current;
+    if (!root) return;
 
-    // Intercept anchor clicks within this component (links and buttons your generator renders)
     const onClickCapture = (e: Event) => {
-      const root = containerRef.current;
-      if (!root) return;
-      const el = e.target as Element | null;
-      const a = el?.closest("a") as HTMLAnchorElement | null;
-      if (!a || !root.contains(a)) return;
+      const el = e.target as HTMLElement | null;
+      if (!el) return;
+      const clickable = el.closest("button, a, [role='button']") as HTMLElement | null;
+      if (!clickable || !root.contains(clickable)) return;
 
-      const href = a.getAttribute("href") || "";
-      if (!href) return;
+      const text = (clickable.textContent || "").toLowerCase().trim();
+      if (
+        text.includes("generate invoice") ||
+        text.includes("create invoice") ||
+        text.includes("build invoice")
+      ) {
+        setHasGenerated(true);
 
-      const patched = appendNotesTermsToUrl(href, notes, terms);
-      if (patched === href) return; // not a WA link
-
-      e.preventDefault();
-      e.stopPropagation();
-
-      const tgt = a.getAttribute("target") || "_blank";
-      if (tgt === "_self") {
-        window.location.href = patched;
-      } else {
-        window.open(patched, tgt);
+        // Re-scan for invoice preview root after generation updates the DOM
+        setTimeout(() => {
+          const found = findInvoiceRoot(root);
+          if (found) setInvoiceRoot(found);
+        }, 50);
       }
     };
 
     document.addEventListener("click", onClickCapture, true);
-    return () => {
-      window.open = originalOpen;
-      document.removeEventListener("click", onClickCapture, true);
-    };
-  }, [notes, terms]);
+
+    // Initial passive scan (in case the preview is already visible on mount)
+    const initial = findInvoiceRoot(root);
+    if (initial) setInvoiceRoot(initial);
+
+    return () => document.removeEventListener("click", onClickCapture, true);
+  }, []);
+
+  /** Small Terms/Notes panel rendered bottom-left INSIDE the invoice area */
+  const termsPanel = (
+    <div
+      // pointer-events-none so we don't block clicks on the invoice preview
+      className="pointer-events-none absolute left-4 bottom-4 z-20 w-[min(460px,46%)]"
+      style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}
+    >
+      {/* Inner box can accept selection if needed */}
+      <div className="pointer-events-auto rounded-md border border-slate-300 bg-white/95 p-3 shadow">
+        <div className="text-xs font-semibold">Terms &amp; Payment details</div>
+        <pre className="mt-1 whitespace-pre-wrap text-[11px] leading-snug text-slate-700">
+{terms.trim()}
+        </pre>
+        {notes.trim() && (
+          <>
+            <div className="mt-2 text-xs font-semibold">Notes</div>
+            <pre className="mt-1 whitespace-pre-wrap text-[11px] leading-snug text-slate-700">
+{notes.trim()}
+            </pre>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  // Decide whether to show the panel
+  const shouldShowPanel =
+    hasGenerated && (autoBank || !!notes.trim() || !!terms.trim());
 
   return (
-    <div ref={containerRef} className="space-y-8">
+    <div ref={wrapperRef} className="space-y-8">
       {/* Your existing AI-driven WhatsApp → invoice generator */}
       <AIInvoiceGenerator />
 
-      {/* Notes & Terms panel */}
+      {/* Controls for Notes & Terms */}
       <section className="rounded-lg border border-slate-200 p-4">
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-base font-semibold">Notes &amp; Terms / Payment details</h3>
           <label className="inline-flex select-none items-center gap-2 text-sm">
             <input
@@ -154,7 +191,6 @@ export function InvoiceNotesTermsBridge() {
               className="w-full rounded-md border border-slate-300 p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               rows={5}
             />
-
             <div className="mt-2 flex flex-wrap gap-2">
               <Button type="button" variant="outline" onClick={() => setTerms(DEFAULT_BANK_DETAILS)}>
                 Reset to Bridgeocean bank details
@@ -182,10 +218,21 @@ export function InvoiceNotesTermsBridge() {
         </div>
 
         <p className="mt-3 text-xs text-slate-500">
-          When you tap <em>Share via WhatsApp</em> in the invoice generator, these Notes &amp; Terms
-          will be automatically appended to the message.
+          After you click <em>Generate invoice</em>, the Terms/Notes box will appear in the invoice
+          bottom-left. It’s also included in PDF/print when the preview root is detected.
         </p>
       </section>
+
+      {/* Render the panel INSIDE the invoice preview tree when possible; else in our wrapper */}
+      {shouldShowPanel &&
+        (invoiceRoot
+          ? ReactDOM.createPortal(termsPanel, invoiceRoot)
+          : (
+            <div className="relative">
+              {/* local render fallback */}
+              {termsPanel}
+            </div>
+          ))}
     </div>
   );
 }
