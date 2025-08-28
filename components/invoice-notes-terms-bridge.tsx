@@ -4,7 +4,7 @@ import * as React from "react";
 import { AIInvoiceGenerator } from "@/components/ai-invoice-generator";
 import { Button } from "@/components/ui/button";
 
-/** Default bank details go here (pre-fills "Terms & Payment details") */
+/** Default bank details (prefills Terms & Payment details) */
 const DEFAULT_BANK_DETAILS = `Zenith Bank Account (preferred)
 Zenith Account number: 1229647858
 Bridgeocean Limited
@@ -13,21 +13,25 @@ Moniepoint Account details
 Moniepoint Account number: 8135261568
 Bridgeocean Limited`;
 
-function appendNotesTermsToWaUrl(url: string, notes: string, terms: string) {
+/** Safely append Notes/Terms to WhatsApp share URLs */
+function appendNotesTermsToUrl(url: string, notes: string, terms: string) {
   try {
     const u = new URL(url);
-    if (u.hostname !== "wa.me") return url;
-    const text = u.searchParams.get("text") || "";
-    const base = decodeURIComponent(text);
+    const isWa =
+      u.hostname === "wa.me" ||
+      (u.hostname === "api.whatsapp.com" && u.pathname === "/send");
+    if (!isWa) return url;
 
-    const add: string[] = [];
-    if (notes.trim()) add.push(`\n\nNotes:\n${notes.trim()}`);
-    if (terms.trim()) add.push(`\n\nTerms & Payment Details:\n${terms.trim()}`);
+    const original = u.searchParams.get("text") ?? ""; // already decoded by URLSearchParams
+    let merged = original;
 
-    if (add.length === 0) return url;
+    const extra: string[] = [];
+    if (notes.trim()) extra.push(`\n\nNotes:\n${notes.trim()}`);
+    if (terms.trim()) extra.push(`\n\nTerms & Payment Details:\n${terms.trim()}`);
+    if (extra.length === 0) return url;
 
-    const merged = base + add.join("");
-    u.searchParams.set("text", encodeURIComponent(merged));
+    merged += extra.join("");
+    u.searchParams.set("text", merged); // URL will encode when stringified
     return u.toString();
   } catch {
     return url;
@@ -37,56 +41,60 @@ function appendNotesTermsToWaUrl(url: string, notes: string, terms: string) {
 export function InvoiceNotesTermsBridge() {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
 
-  // Notes & Terms states
+  // Notes & Terms state
   const [notes, setNotes] = React.useState<string>("");
   const [terms, setTerms] = React.useState<string>(DEFAULT_BANK_DETAILS);
   const [autoBank, setAutoBank] = React.useState<boolean>(true);
 
-  // Keep a stable reference to original window.open and patch it while this component is mounted
+  /** Allow your AI (Groq/OpenAI/etc.) to populate Notes/Terms from chat
+   *  by dispatching:
+   *  window.dispatchEvent(new CustomEvent("bridgeocean:setInvoiceMeta", { detail: { notes, terms } }));
+   */
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      const { notes: n, terms: t } = (e as CustomEvent).detail || {};
+      if (typeof n === "string") setNotes(n);
+      if (typeof t === "string") setTerms(t);
+    };
+    window.addEventListener("bridgeocean:setInvoiceMeta", handler as EventListener);
+    return () => window.removeEventListener("bridgeocean:setInvoiceMeta", handler as EventListener);
+  }, []);
+
+  // Patch window.open while mounted, so any wa.me share will get Notes/Terms appended
   React.useEffect(() => {
     const originalOpen = window.open;
-
-    window.open = function patchedOpen(
-      url?: string | URL,
-      target?: string,
-      features?: string
-    ) {
-      let finalUrl = url?.toString() ?? "";
-      if (finalUrl.startsWith("https://wa.me/") && finalUrl.includes("text=")) {
-        finalUrl = appendNotesTermsToWaUrl(finalUrl, notes, terms);
-      }
-      return originalOpen.call(window, finalUrl, target, features) as Window | null;
+    window.open = function patchedOpen(url?: string | URL, target?: string, features?: string) {
+      const str = url?.toString() ?? "";
+      const patched = appendNotesTermsToUrl(str, notes, terms);
+      return originalOpen.call(window, patched, target, features) as Window | null;
     };
 
-    // Intercept <a href="https://wa.me/?text=..."> clicks inside this wrapper
+    // Intercept anchor clicks within this component (links and buttons your generator renders)
     const onClickCapture = (e: Event) => {
       const root = containerRef.current;
       if (!root) return;
-      const target = e.target as Element | null;
-      if (!target) return;
-      const anchor = target.closest("a") as HTMLAnchorElement | null;
-      if (!anchor || !root.contains(anchor)) return;
+      const el = e.target as Element | null;
+      const a = el?.closest("a") as HTMLAnchorElement | null;
+      if (!a || !root.contains(a)) return;
 
-      const href = anchor.getAttribute("href") || "";
-      if (!href.startsWith("https://wa.me/") || !href.includes("text=")) return;
+      const href = a.getAttribute("href") || "";
+      if (!href) return;
+
+      const patched = appendNotesTermsToUrl(href, notes, terms);
+      if (patched === href) return; // not a WA link
 
       e.preventDefault();
       e.stopPropagation();
-      const patched = appendNotesTermsToWaUrl(href, notes, terms);
-      // open in same way user intended
-      const t = anchor.getAttribute("target") || "_blank";
-      const rel = anchor.getAttribute("rel") || "";
-      // If it wanted a new tab, mimic that
-      if (t === "_blank" || rel.includes("noopener")) {
-        window.open(patched, "_blank");
-      } else {
+
+      const tgt = a.getAttribute("target") || "_blank";
+      if (tgt === "_self") {
         window.location.href = patched;
+      } else {
+        window.open(patched, tgt);
       }
     };
 
     document.addEventListener("click", onClickCapture, true);
-
-    // Cleanup: restore original open and listener
     return () => {
       window.open = originalOpen;
       document.removeEventListener("click", onClickCapture, true);
@@ -95,14 +103,13 @@ export function InvoiceNotesTermsBridge() {
 
   return (
     <div ref={containerRef} className="space-y-8">
-      {/* Your existing AI-driven generator */}
+      {/* Your existing AI-driven WhatsApp → invoice generator */}
       <AIInvoiceGenerator />
 
-      {/* NEW: Notes & Terms panel that gets auto-appended to WhatsApp messages */}
+      {/* Notes & Terms panel */}
       <section className="rounded-lg border border-slate-200 p-4">
-        <div className="flex items-center justify-between mb-2">
+        <div className="mb-2 flex items-center justify-between">
           <h3 className="text-base font-semibold">Notes &amp; Terms / Payment details</h3>
-
           <label className="inline-flex select-none items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -147,12 +154,9 @@ export function InvoiceNotesTermsBridge() {
               className="w-full rounded-md border border-slate-300 p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               rows={5}
             />
+
             <div className="mt-2 flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setTerms(DEFAULT_BANK_DETAILS)}
-              >
+              <Button type="button" variant="outline" onClick={() => setTerms(DEFAULT_BANK_DETAILS)}>
                 Reset to Bridgeocean bank details
               </Button>
               <Button
@@ -179,7 +183,7 @@ export function InvoiceNotesTermsBridge() {
 
         <p className="mt-3 text-xs text-slate-500">
           When you tap <em>Share via WhatsApp</em> in the invoice generator, these Notes &amp; Terms
-          will be automatically appended to the message. No extra steps needed.
+          will be automatically appended to the message.
         </p>
       </section>
     </div>
