@@ -2,10 +2,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-// ⬇️ Use the path that matches your repo.
-// If your file is components/ai-invoice-generator.tsx keep this import.
-// If it's components/AIInvoiceGenerator.tsx change the path accordingly.
-import { AIInvoiceGenerator } from "@/components/ai-invoice-generator";
+import { InvoiceNotesTermsBridge } from "@/components/invoice-notes-terms-bridge";
 
 export const metadata = {
   title: "AI Invoice Generator — Bridgeocean",
@@ -32,7 +29,9 @@ export default function InvoicePage() {
           <h2 className="text-3xl font-bold tracking-tight">AI Invoice Generator</h2>
         </div>
 
-        <AIInvoiceGenerator />
+        {/* NEW: Wrapper that renders your existing AI generator AND
+            adds Notes/Terms + WhatsApp interception (no changes to your component) */}
+        <InvoiceNotesTermsBridge />
       </main>
     </div>
   );
