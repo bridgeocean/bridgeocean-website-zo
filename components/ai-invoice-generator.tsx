@@ -1,80 +1,276 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import * as React from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, Download, Loader2, Copy, Brain, Receipt } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 
-interface InvoiceData {
+/** ---------- Utilities ---------- */
+
+const NGN = new Intl.NumberFormat("en-NG", {
+  style: "currency",
+  currency: "NGN",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+
+function money(n: number | string) {
+  const val = typeof n === "string" ? Number(n.replace(/[^\d.-]/g, "")) : n;
+  return NGN.format(isFinite(val) ? val : 0);
+}
+
+function todayISO() {
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+function addDaysISO(n: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function escapeHtml(s: string) {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+}
+
+/** A very small “parser” to pull a single amount from chat if present */
+function roughParseFromChat(chat: string) {
+  const amountMatch = chat.match(/₦?\s?([\d,]+)(?:\.\d+)?/);
+  const amount = amountMatch ? Number(amountMatch[1].replace(/,/g, "")) : 165000;
+  const who = (chat.match(/to[:\- ]+([A-Za-z ]{2,})/i)?.[1] || chat.match(/\b(?:for|bill to)\s+([A-Za-z ]{2,})/i)?.[1] || "Jide").trim();
+
+  return {
+    billTo: who,
+    items: [
+      {
+        description: "GMC Terrain Charter Service (2 days)",
+        quantity: 1,
+        rate: amount,
+      },
+    ],
+  };
+}
+
+/** ---------- HTML builders (include Terms/Notes) ---------- */
+
+const BRIDGEOCEAN_NAME = "Bridgeocean Limited";
+const BRIDGEOCEAN_TAGLINE = "Premium Charter Services";
+
+function buildInvoiceHTML(opts: {
   invoiceNumber: string;
-  customerName: string;
+  billTo: string;
   serviceDate: string;
   dueDate: string;
-  vehicle: string;
-  duration: string;
-  rate: number;
-  quantity: number;
-  subtotal: number;
-  vat: number;
-  total: number;
-  notes: string;
-  terms: string;
+  items: { description: string; quantity: number; rate: number }[];
   amountPaid: number;
-  balanceDue: number;
+  notesText?: string;
+  termsText?: string;
+}) {
+  const subtotal = opts.items.reduce((s, it) => s + it.quantity * it.rate, 0);
+  const total = subtotal;
+  const balance = total - opts.amountPaid;
+
+  const termsBlock = opts.termsText?.trim()
+    ? `<h4>Terms & Payment details</h4><pre class="pre">${escapeHtml(opts.termsText.trim())}</pre>`
+    : "";
+  const notesBlock = opts.notesText?.trim()
+    ? `<h4>Notes</h4><pre class="pre">${escapeHtml(opts.notesText.trim())}</pre>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Invoice ${escapeHtml(opts.invoiceNumber)}</title>
+<meta name="color-scheme" content="light only" />
+<style>
+  body { font-family: Arial, sans-serif; margin: 40px; color: #111; background:#fff; }
+  .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; }
+  .invoice-title { font-size: 28px; font-weight: 800; letter-spacing: .5px; }
+  .invoice-number { font-size: 16px; color: #2563eb; font-weight: 700; }
+  .company-info { text-align:right; }
+  .bill-to { margin: 16px 0 8px; }
+  .dates { display:flex; gap: 32px; margin: 16px 0 24px; }
+  .items { width: 100%; border-collapse: collapse; }
+  .items th, .items td { border:1px solid #e5e7eb; padding: 10px 12px; text-align:left; }
+  .items th { background:#f8fafc; }
+  .totals { margin-left:auto; width: 320px; margin-top: 18px; }
+  .row { display:flex; justify-content:space-between; padding: 6px 0; }
+  .final { border-top:2px solid #111; padding-top:10px; font-weight:700; }
+  .terms { margin-top: 26px; }
+  .terms h4 { margin: 14px 0 6px; font-size: 14px; }
+  .pre { white-space: pre-wrap; font-size: 13px; line-height: 1.45; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="invoice-title">INVOICE</div>
+      <div class="invoice-number">#${escapeHtml(opts.invoiceNumber)}</div>
+    </div>
+    <div class="company-info">
+      <h2>${escapeHtml(BRIDGEOCEAN_NAME)}</h2>
+      <div>${escapeHtml(BRIDGEOCEAN_TAGLINE)}</div>
+    </div>
+  </div>
+
+  <div class="bill-to"><strong>Bill To:</strong><br/>${escapeHtml(opts.billTo)}</div>
+  <div class="dates">
+    <div><strong>Service Date:</strong> ${escapeHtml(opts.serviceDate)}</div>
+    <div><strong>Due Date:</strong> ${escapeHtml(opts.dueDate)}</div>
+    <div><strong>Balance Due:</strong> ${escapeHtml(money(balance))}</div>
+  </div>
+
+  <table class="items">
+    <thead><tr><th>Item</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr></thead>
+    <tbody>
+      ${opts.items.map(it => {
+        const amt = it.quantity * it.rate;
+        return `<tr>
+          <td>${escapeHtml(it.description)}</td>
+          <td>${escapeHtml(String(it.quantity))}</td>
+          <td>${escapeHtml(money(it.rate))}</td>
+          <td>${escapeHtml(money(amt))}</td>
+        </tr>`;
+      }).join("")}
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div class="row"><span>Subtotal:</span><span>${escapeHtml(money(subtotal))}</span></div>
+    <div class="row final"><span>Total:</span><span>${escapeHtml(money(total))}</span></div>
+    <div class="row"><span>Amount Paid:</span><span>${escapeHtml(money(opts.amountPaid))}</span></div>
+    <div class="row final"><span>Balance Due:</span><span>${escapeHtml(money(balance))}</span></div>
+  </div>
+
+  <div class="terms">
+    ${termsBlock}${notesBlock}
+  </div>
+</body>
+</html>`;
 }
 
-interface ReceiptData {
-  transactionId: string;
-  mccCode: string;
-  paymentMethod: string;
-  subtotal: number;
-  serviceCharge: number;
-  total: number;
-  timestamp: string;
-  customerName: string;
+function buildReceiptHTML(opts: {
+  receiptNumber: string;
+  billTo: string;
+  date: string;
+  items: { description: string; quantity: number; rate: number }[];
+  amountPaid: number;
+  notesText?: string;
+}) {
+  const paid = opts.amountPaid;
+  const notesBlock = opts.notesText?.trim()
+    ? `<h4>Notes</h4><pre class="pre">${escapeHtml(opts.notesText.trim())}</pre>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Receipt ${escapeHtml(opts.receiptNumber)}</title>
+<meta name="color-scheme" content="light only" />
+<style>
+  body { font-family: Arial, sans-serif; margin: 40px; color: #111; background:#fff; }
+  .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; }
+  .receipt-title { font-size: 28px; font-weight: 800; letter-spacing: .5px; }
+  .receipt-number { font-size: 16px; color: #2563eb; font-weight: 700; }
+  .company-info { text-align:right; }
+  .bill-to { margin: 16px 0 8px; }
+  .items { width: 100%; border-collapse: collapse; margin-top: 20px; }
+  .items th, .items td { border:1px solid #e5e7eb; padding: 10px 12px; text-align:left; }
+  .items th { background:#f8fafc; }
+  .pre { white-space: pre-wrap; font-size: 13px; line-height: 1.45; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="receipt-title">RECEIPT</div>
+      <div class="receipt-number">#${escapeHtml(opts.receiptNumber)}</div>
+    </div>
+    <div class="company-info">
+      <h2>${escapeHtml(BRIDGEOCEAN_NAME)}</h2>
+      <div>${escapeHtml(BRIDGEOCEAN_TAGLINE)}</div>
+    </div>
+  </div>
+
+  <div><strong>Received From:</strong> ${escapeHtml(opts.billTo)}</div>
+  <div><strong>Date:</strong> ${escapeHtml(opts.date)}</div>
+
+  <table class="items">
+    <thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
+    <tbody>
+      ${opts.items.map(it => {
+        const amt = it.quantity * it.rate;
+        return `<tr>
+          <td>${escapeHtml(it.description)}</td>
+          <td>${escapeHtml(String(it.quantity))}</td>
+          <td>${escapeHtml(money(it.rate))}</td>
+          <td>${escapeHtml(money(amt))}</td>
+        </tr>`;
+      }).join("")}
+    </tbody>
+  </table>
+
+  <h3 style="margin-top:18px;">Amount Paid: ${escapeHtml(money(paid))}</h3>
+
+  ${notesBlock}
+</body>
+</html>`;
 }
 
-export function AIInvoiceGenerator() {
-  const [whatsappChat, setWhatsappChat] = useState("");
-  const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null);
-  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isGeneratingInvoiceHTML, setIsGeneratingInvoiceHTML] = useState(false);
-  const [isGeneratingReceiptHTML, setIsGeneratingReceiptHTML] = useState(false);
-  const [activeView, setActiveView] = useState<"invoice" | "receipt">("invoice");
-  const [includeVAT, setIncludeVAT] = useState(false);
-  const { toast } = useToast();
+/** ---------- Component ---------- */
 
-  // NEW: data URL of the logo for downloaded HTML
-  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+type Item = { description: string; quantity: number; rate: number; };
+type Props = {
+  notes?: string;
+  terms?: string;
+  autoBank?: boolean;
+};
 
-  useEffect(() => {
-    // Loads /public/images/bridgeocean-logo.jpg and converts to data URL
-    const loadLogoAsDataURL = async (path: string) => {
-      try {
-        const res = await fetch(path, { cache: "force-cache" });
-        if (!res.ok) return;
-        const blob = await res.blob();
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-        setLogoDataUrl(dataUrl);
-      } catch {
-        // ignore: fallback is just no logo in downloaded HTML
-      }
-    };
-    loadLogoAsDataURL("/images/bridgeocean-logo.jpg");
-  }, []);
+export function AIInvoiceGenerator({ notes = "", terms = "", autoBank = true }: Props) {
+  // Minimal “source” input (paste WhatsApp chat here, optional)
+  const [chat, setChat] = React.useState<string>("");
 
-  // ----- tiny utility: save an .html file -----
-  const downloadHTMLFile = (html: string, filename: string) => {
+  // Data model (you can still wire your own AI to populate these)
+  const [billTo, setBillTo] = React.useState<string>("Jide");
+  const [items, setItems] = React.useState<Item[]>([
+    { description: "GMC Terrain Charter Service (2 days)", quantity: 1, rate: 165000 },
+  ]);
+  const [serviceDate, setServiceDate] = React.useState<string>(todayISO());
+  const [dueDate, setDueDate] = React.useState<string>(addDaysISO(1));
+  const [amountPaid, setAmountPaid] = React.useState<number>(0);
+
+  const [generated, setGenerated] = React.useState<boolean>(false);
+  const [invoiceNumber, setInvoiceNumber] = React.useState<string>(() => {
+    const r = Math.floor(100 + Math.random() * 900);
+    return `INV${r}-BO`;
+  });
+  const [receiptNumber, setReceiptNumber] = React.useState<string>(() => {
+    const r = Math.floor(100 + Math.random() * 900);
+    return `RCT${r}-BO`;
+  });
+
+  // Optional: “AI” parse from chat on Generate
+  function handleGenerate() {
+    if (chat.trim()) {
+      const parsed = roughParseFromChat(chat);
+      setBillTo(parsed.billTo);
+      setItems(parsed.items);
+    }
+    setGenerated(true);
+  }
+
+  const subtotal = items.reduce((s, it) => s + it.quantity * it.rate, 0);
+  const total = subtotal;
+  const balance = total - amountPaid;
+
+  /** Download helpers */
+  function download(filename: string, html: string) {
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -84,743 +280,235 @@ export function AIInvoiceGenerator() {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-  };
+  }
 
-  // ---------- Receipt helper (mirror Invoice Total) ----------
-  const generateReceiptData = (invoice: InvoiceData): ReceiptData => {
-    const now = new Date();
-    const timestamp =
-      now.toLocaleDateString("en-GB") +
-      " " +
-      now.toLocaleTimeString("en-GB", { hour12: false, hour: "2-digit", minute: "2-digit" });
-
-    const transactionId = Math.random().toString(36).substring(2, 9).toUpperCase();
-    const mccCode = "4121" + Math.random().toString(36).substring(2, 6).toUpperCase();
-
-    const total = Number(invoice.total ?? 0);
-    const safeTotal = isFinite(total) ? Math.max(0, total) : 0;
-
-    return {
-      transactionId,
-      mccCode,
-      paymentMethod: "Bank Transfer",
-      subtotal: safeTotal,
-      serviceCharge: 0,
-      total: safeTotal,
-      timestamp,
-      customerName: invoice.customerName,
-    };
-  };
-
-  // ---------- Hybrid extractor ----------
-  const hybridExtraction = (chat: string) => {
-    const lower = chat.toLowerCase();
-
-    type Amt = { value: number; index: number; ctx: string };
-    const amounts: Amt[] = [];
-
-    function pushAmount(value: number, index: number) {
-      if (!Number.isFinite(value) || value < 1000) return;
-      const ctx = chat.slice(Math.max(0, index - 80), Math.min(chat.length, index + 80)).toLowerCase();
-      amounts.push({ value: Math.round(value), index, ctx });
-    }
-
-    function parseAmount(numRaw: string, unitRaw?: string) {
-      const n = parseFloat(numRaw.replace(/,/g, ""));
-      if (!Number.isFinite(n)) return NaN;
-      const unit = (unitRaw || "").toLowerCase();
-      if (unit === "million" || unit === "m") return n * 1_000_000;
-      if (unit === "thousand" || unit === "k") return n * 1_000;
-      return n;
-    }
-
-    let m: RegExpExecArray | null;
-    let re1 = /(₦|ngn|(?<![a-z])n)\s*([\d.,]+)\s*(million|m|thousand|k)?/gi;
-    while ((m = re1.exec(chat)) !== null) pushAmount(parseAmount(m[2], m[3]), m.index);
-
-    let re2 = /([\d.,]+)\s*(million|m|thousand|k)\b/gi;
-    while ((m = re2.exec(chat)) !== null) pushAmount(parseAmount(m[1], m[2]), m.index);
-
-    let re3 = /(\d{1,3}(?:,\d{3})+)(?!\S)/g;
-    while ((m = re3.exec(chat)) !== null) pushAmount(parseAmount(m[1]), m.index);
-
-    const names: string[] = [];
-    const nameRes = [
-      /mr\.?\s+([a-z][a-z\s]+)/gi,
-      /mrs\.?\s+([a-z][a-z\s]+)/gi,
-      /ms\.?\s+([a-z][a-z\s]+)/gi,
-      /my name is\s+([a-z][a-z\s]+)/gi,
-      /i'?m\s+([a-z][a-z\s]+)/gi,
-      /this is\s+([a-z][a-z\s]+)/gi,
-      /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/g,
-    ];
-    for (const rx of nameRes) {
-      let nm: RegExpExecArray | null;
-      while ((nm = rx.exec(chat)) !== null) {
-        const name = nm[1].trim();
-        if (name.length > 2) names.push(name);
-      }
-    }
-    const customerName = names[0] || "Valued Customer";
-
-    const today = new Date();
-    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-    let serviceDate = new Date(today);
-    let foundDate = false;
-
-    if (lower.includes("tomorrow")) {
-      serviceDate.setDate(today.getDate() + 1);
-      foundDate = true;
-    }
-    if (lower.includes("today")) foundDate = true;
-
-    if (!foundDate) {
-      for (const d of dayNames) {
-        if (lower.includes(d)) {
-          const target = dayNames.indexOf(d);
-          const diff = (target - today.getDay() + 7) % 7 || 7;
-          serviceDate.setDate(today.getDate() + diff);
-          foundDate = true;
-          break;
-        }
-      }
-    }
-    const serviceDateStr = serviceDate.toLocaleDateString("en-GB");
-
-    let duration = "Full day service";
-    const durHours = chat.match(/(\d+)\s*hours?/i);
-    const durDaysNum = chat.match(/(\d+)\s*days?/i);
-    const twoDay = /two[-\s]?day/i.test(chat);
-    if (durHours) duration = `${durHours[1]} hours`;
-    else if (durDaysNum) duration = `${durDaysNum[1]} days`;
-    else if (twoDay) duration = "2 days";
-
-    let servicePrice = 0;
-    const closing = /(agree|deal|final|new total|close the deal|secure|bringing|reduce|price|rate|cost|total)/i;
-    for (const a of amounts) if (closing.test(a.ctx)) servicePrice = a.value;
-    if (!servicePrice && amounts.length) servicePrice = Math.max(...amounts.map((a) => a.value));
-
-    let amountPaid = 0;
-    const payAny =
-      /(paid|pay(?:ing)?|transfer(?:red)?|deposit|upfront|advance|part\s*payment|sent|sending|proof|receipt)/i;
-    for (const a of amounts) if (payAny.test(a.ctx)) amountPaid = a.value;
-
-    if (!amountPaid && /50%|half|fifty percent/i.test(lower) && servicePrice) {
-      amountPaid = Math.round(servicePrice * 0.5);
-    } else if (!amountPaid && /(deposit|upfront|advance|part\s*payment)/i.test(lower) && amounts.length >= 2) {
-      amountPaid = Math.min(...amounts.map((a) => a.value));
-    } else if (!amountPaid && /full\s*(?:amount|payment)/i.test(lower)) {
-      amountPaid = servicePrice;
-    }
-
-    let vehicleType = "Charter Service";
-    if (/gmc|terrain/i.test(chat)) vehicleType = "GMC Terrain Charter Service";
-    if (/toyota|camry/i.test(chat)) vehicleType = "Toyota Camry Charter Service";
-    if (/yacht|elegance/i.test(chat)) vehicleType = "Elegance Yacht Charter";
-
-    (window as any).__invoice_debug = { amounts, servicePrice, amountPaid };
-
-    return {
-      customerName,
-      servicePrice,
-      amountPaid,
-      vehicleType,
-      serviceDate: serviceDateStr,
-      duration,
-    };
-  };
-
-  // ---------- Build invoice from hybrid result ----------
-  const extractInvoiceData = async (chat: string): Promise<InvoiceData> => {
-    const ex = hybridExtraction(chat);
-
-    let notes = "Professional charter service with driver and fuel included.";
-    let finalRate = ex.servicePrice;
-
-    if (!finalRate || finalRate < 1000) {
-      const lower = (ex.vehicleType || "").toLowerCase();
-      if (lower.includes("gmc")) finalRate = 200000;
-      else if (lower.includes("camry") || lower.includes("toyota")) finalRate = 100000;
-      else finalRate = 100000;
-    }
-
-    if (/first time|first timer/i.test(chat)) {
-      notes = "First timer discount applied. Professional charter service with driver and fuel included.";
-      finalRate = Math.round(finalRate * 0.9);
-    }
-    if (/emergency/i.test(chat)) {
-      notes = "Emergency response service with immediate dispatch.";
-      finalRate = Math.round(finalRate * 1.2);
-    }
-
-    const quantity = 1;
-    const subtotal = finalRate * quantity;
-    const vat = includeVAT ? Math.round(subtotal * 0.075) : 0;
-    const total = subtotal + vat;
-    const balanceDue = total - (ex.amountPaid || 0);
-
-    const serviceDateObj = new Date(ex.serviceDate.split("/").reverse().join("-"));
-    const dueDate = new Date(serviceDateObj);
-    dueDate.setDate(serviceDateObj.getDate() + 1);
-
-    const invoiceNumber = `INV${String(Date.now()).slice(-3)}-BO`;
-
-    return {
+  function downloadInvoice() {
+    const html = buildInvoiceHTML({
       invoiceNumber,
-      customerName: ex.customerName,
-      serviceDate: ex.serviceDate,
-      dueDate: dueDate.toLocaleDateString("en-GB"),
-      vehicle: ex.vehicleType,
-      duration: ex.duration || "Full day service",
-      rate: finalRate,
-      quantity,
-      subtotal,
-      vat,
-      total,
-      amountPaid: ex.amountPaid || 0,
-      balanceDue,
-      notes,
-      terms: "Payment terms as agreed in conversation",
-    };
-  };
+      billTo,
+      serviceDate,
+      dueDate,
+      items,
+      amountPaid,
+      notesText: notes,
+      termsText: terms,
+    });
+    download(`Invoice-${invoiceNumber}-Bridgeocean.html`, html);
+  }
 
-  // ---------- Actions ----------
-  const extractInvoiceDataWithAI = async (chat: string) => {
-    setIsGenerating(true);
-    try {
-      await new Promise((r) => setTimeout(r, 300));
-      return await extractInvoiceData(chat);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
+  function downloadReceipt() {
+    const html = buildReceiptHTML({
+      receiptNumber,
+      billTo,
+      date: todayISO(),
+      items,
+      amountPaid: amountPaid || items.reduce((s, it) => s + it.quantity * it.rate, 0),
+      notesText: notes,
+    });
+    download(`Receipt-${receiptNumber}-Bridgeocean.html`, html);
+  }
 
-  const handleGenerateInvoice = async () => {
-    if (!whatsappChat.trim()) {
-      toast({
-        title: "WhatsApp chat required",
-        description: "Please paste a WhatsApp conversation to generate an invoice",
-        variant: "destructive",
-      });
-      return;
-    }
-    try {
-      const data = await extractInvoiceDataWithAI(whatsappChat);
-      setInvoiceData(data);
-      setReceiptData(generateReceiptData(data)); // receipt mirrors invoice total
-      toast({ title: "Invoice & Receipt generated", description: "Hybrid extraction completed." });
-    } catch (e) {
-      toast({
-        title: "Error generating invoice",
-        description: "Please try again or check the conversation format.",
-        variant: "destructive",
-      });
-    }
-  };
+  /** Editable items (kept simple) */
+  const updateItem = (i: number, patch: Partial<Item>) =>
+    setItems(prev => prev.map((it, idx) => idx === i ? { ...it, ...patch } : it));
+  const addItem = () => setItems(prev => [...prev, { description: "", quantity: 1, rate: 0 }]);
+  const removeItem = (i: number) => setItems(prev => prev.filter((_, idx) => idx !== i));
 
-  // ---------- HTML builders (embed logoDataUrl when available) ----------
-  const buildInvoiceHTML = (inv: InvoiceData) => `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Invoice ${inv.invoiceNumber}</title>
-  <meta name="color-scheme" content="light only" />
-  <style>
-    body { font-family: Arial, sans-serif; margin: 40px; color: #111; background:#fff; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-    .invoice-title { font-size: 32px; font-weight: bold; }
-    .invoice-number { font-size: 18px; color: #2563eb; font-weight: bold; }
-    .company-info { text-align: right; }
-    .logo { width: 80px; height: 80px; object-fit: contain; display:block; margin-left:auto; }
-    .bill-to { margin: 20px 0; }
-    .dates { display: flex; justify-content: space-between; margin: 20px 0; }
-    .items-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    .items-table th, .items-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-    .items-table th { background-color: #f5f5f5; }
-    .totals { margin-left: auto; width: 300px; }
-    .total-row { display: flex; justify-content: space-between; padding: 6px 0; }
-    .total-final { font-weight: bold; font-size: 18px; border-top: 2px solid #000; padding-top: 10px; }
-    .notes { margin-top: 30px; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div>
-      <div class="invoice-title">INVOICE</div>
-      <div class="invoice-number">#${inv.invoiceNumber}</div>
-    </div>
-    <div class="company-info">
-      ${logoDataUrl ? `<img class="logo" src="${logoDataUrl}" alt="Bridgeocean Logo" />` : ``}
-      <h2>Bridgeocean Limited</h2>
-      <p>Premium Charter Services</p>
-    </div>
-  </div>
-
-  <div class="bill-to">
-    <h3>Bill To:</h3>
-    <p style="font-size: 18px;">${inv.customerName}</p>
-  </div>
-
-  <div class="dates">
-    <div><strong>Service Date:</strong> ${inv.serviceDate}</div>
-    <div><strong>Due Date:</strong> ${inv.dueDate}</div>
-    <div><strong>Balance Due:</strong> ₦${inv.balanceDue.toLocaleString()}</div>
-  </div>
-
-  <table class="items-table">
-    <thead>
-      <tr><th>Item</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>${inv.vehicle} (${inv.duration})</td>
-        <td>${inv.quantity}</td>
-        <td>₦${inv.rate.toLocaleString()}</td>
-        <td>₦${inv.subtotal.toLocaleString()}</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div class="totals">
-    <div class="total-row"><span>Subtotal:</span><span>₦${inv.subtotal.toLocaleString()}</span></div>
-    ${inv.vat > 0 ? `<div class="total-row"><span>VAT (7.5%):</span><span>₦${inv.vat.toLocaleString()}</span></div>` : ""}
-    <div class="total-row total-final"><span>Total:</span><span>₦${inv.total.toLocaleString()}</span></div>
-    <div class="total-row"><span>Amount Paid:</span><span>₦${inv.amountPaid.toLocaleString()}</span></div>
-    <div class="total-row total-final"><span>Balance Due:</span><span>₦${inv.balanceDue.toLocaleString()}</span></div>
-  </div>
-
-  <div class="notes">
-    <h4>Notes:</h4>
-    <p>${inv.notes}</p>
-    <h4>Terms:</h4>
-    <p>${inv.terms}</p>
-  </div>
-</body>
-</html>`;
-
-  const buildReceiptHTML = (r: ReceiptData) => `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Receipt ${r.transactionId}</title>
-  <meta name="color-scheme" content="light only" />
-  <style>
-    body { 
-      font-family: 'Courier New', monospace; 
-      margin: 40px; 
-      background-color: #f9f9f9;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      color: #111;
-    }
-    .receipt {
-      background: white;
-      padding: 30px;
-      border: 2px solid #000;
-      max-width: 420px;
-      text-align: center;
-      width: 100%;
-    }
-    .logo { width: 70px; height: 70px; object-fit: contain; display:block; margin: 0 auto 8px; }
-    .company-name { font-size: 18px; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; }
-    .datetime { font-size: 14px; margin-bottom: 15px; }
-    .transaction-info { text-align: left; margin: 20px 0; font-size: 14px; }
-    .amount-line { display: flex; justify-content: space-between; margin: 6px 0; }
-    .total-line { font-weight: bold; border-top: 1px solid #000; padding-top: 6px; margin-top: 10px; }
-    .footer { margin-top: 20px; font-size: 12px; }
-    .company-footer { margin-top: 15px; font-size: 14px; font-weight: bold; }
-  </style>
-</head>
-<body>
-  <div class="receipt">
-    ${logoDataUrl ? `<img class="logo" src="${logoDataUrl}" alt="Bridgeocean Logo" />` : ``}
-    <div class="company-name">BRIDGEOCEAN LIMITED</div>
-    <div class="datetime">${r.timestamp}</div>
-    
-    <div class="transaction-info">
-      <div>TRANS ${r.transactionId}</div>
-      <div>MCC ${r.mccCode}</div>
-      <div>PAYMENT - ${r.paymentMethod}</div>
-    </div>
-
-    <div class="transaction-info">
-      <div class="amount-line"><span>SUBTOTAL:</span><span>₦${r.subtotal.toLocaleString()}.00</span></div>
-      <div class="amount-line"><span>SERVICE:</span><span>₦${r.serviceCharge.toLocaleString()}.00</span></div>
-      <div class="amount-line total-line"><span>TOTAL:</span><span>₦${r.total.toLocaleString()}.00</span></div>
-    </div>
-
-    <div class="footer">
-      <div>PLEASE COME AGAIN</div>
-      <div>THANK YOU</div>
-    </div>
-
-    <div class="company-footer">...........BRIDGEOCEAN LIMITED...........</div>
-  </div>
-</body>
-</html>`;
-
-  // ---------- Download handlers (HTML only) ----------
-  const handleDownloadInvoiceHTML = () => {
-    if (!invoiceData) return;
-    try {
-      setIsGeneratingInvoiceHTML(true);
-      const html = buildInvoiceHTML(invoiceData);
-      downloadHTMLFile(html, `Invoice-${invoiceData.invoiceNumber}-Bridgeocean.html`);
-      toast({ title: "Invoice downloaded (HTML)", description: `#${invoiceData.invoiceNumber}` });
-    } catch (e: any) {
-      toast({ title: "Download failed", description: e?.message ?? "Unknown error", variant: "destructive" });
-    } finally {
-      setIsGeneratingInvoiceHTML(false);
-    }
-  };
-
-  const handleDownloadReceiptHTML = () => {
-    if (!receiptData) return;
-    try {
-      setIsGeneratingReceiptHTML(true);
-      const html = buildReceiptHTML(receiptData);
-      downloadHTMLFile(html, `Receipt-${receiptData.transactionId}-Bridgeocean.html`);
-      toast({ title: "Receipt downloaded (HTML)", description: `#${receiptData.transactionId}` });
-    } catch (e: any) {
-      toast({ title: "Download failed", description: e?.message ?? "Unknown error", variant: "destructive" });
-    } finally {
-      setIsGeneratingReceiptHTML(false);
-    }
-  };
-
-  // ---------- UI helpers ----------
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 }).format(amount);
-
-  const exampleChats = [
-    `Chika: Good afternoon! My name is Chika. How can I assist you today?
-Mr. Adebayo: Hi Chika. I need a quote for a two-day charter in Lagos for a corporate event with 20 guests.
-Chika: I'd recommend our "Elegance" yacht. The standard two-day charter rate is NGN 3,500,000.
-Mr. Adebayo: That's over budget. I'm looking to spend around NGN 2.8 million.
-Chika: We can offer a 10% discount → NGN 3,150,000.
-Mr. Adebayo: Can you meet us at NGN 2.85 million to close the deal?
-Chika: We agree to NGN 2.85 million (yacht + crew, no dinner).
-Mr. Adebayo: Great — I'll transfer NGN 1,000,000 now as deposit.`,
-    `Customer: Hi, I need to book your GMC Terrain for tomorrow
-Bridgeocean: Hello! That's ₦200,000 for 10 hours (minimum). Can you pay 50% now?
-Customer: Yes, my name is John Adebayo. I'll pay ₦100,000 now
-Bridgeocean: Perfect, booking confirmed`,
-    `Customer: Emergency! Need a car now at VI
-Bridgeocean: GMC Terrain available, ₦240,000 emergency rate
-Customer: That's fine, I'll make full payment
-Bridgeocean: Confirmed.`,
-  ];
-
-  // ---------- JSX ----------
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5" />
-            Hybrid AI Invoice & Receipt Generator
-          </CardTitle>
-          <CardDescription>Extracts amounts/names/dates and applies business logic to assign roles.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">WhatsApp Chat Conversation</label>
-            <Textarea
-              placeholder="Paste your WhatsApp conversation here..."
-              value={whatsappChat}
-              onChange={(e) => setWhatsappChat(e.target.value)}
-              rows={8}
-              className="resize-none font-mono text-sm"
-            />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Checkbox id="include-vat" checked={includeVAT} onCheckedChange={(v) => setIncludeVAT(!!v)} />
-            <label htmlFor="include-vat" className="text-sm font-medium">
-              Include 7.5% VAT in calculations
-            </label>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Example Conversations (Click to Use)</label>
-            <div className="grid grid-cols-1 gap-2">
-              {exampleChats.map((example, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setWhatsappChat(example)}
-                  className="text-xs h-auto p-3 text-left justify-start"
-                >
-                  <div className="truncate">
-                    <strong>Example {index + 1}:</strong> {example.split("\n")[0].substring(0, 70)}...
-                  </div>
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <Button onClick={handleGenerateInvoice} className="w-full" disabled={isGenerating || !whatsappChat.trim()}>
-            {isGenerating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Extracting…
-              </>
-            ) : (
-              <>
-                <Brain className="mr-2 h-4 w-4" />
-                Generate Invoice & Receipt
-              </>
-            )}
+      {/* Source chat (optional) */}
+      <section className="rounded-lg border border-slate-200 p-4">
+        <label className="mb-1 block text-sm font-medium text-slate-700">
+          Paste WhatsApp chat (optional)
+        </label>
+        <textarea
+          value={chat}
+          onChange={(e) => setChat(e.target.value)}
+          placeholder="Paste conversation here and click Generate…"
+          className="h-28 w-full rounded-md border border-slate-300 p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+        <div className="mt-3">
+          <Button className="bg-blue-600 text-white hover:bg-blue-700" onClick={handleGenerate}>
+            Generate Invoice & Receipt
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      {invoiceData && receiptData && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Generated Documents
-            </CardTitle>
-            <CardDescription>Preview and download as HTML</CardDescription>
+      {/* Generated Documents */}
+      <section className="rounded-lg border border-slate-200 p-4">
+        <h3 className="mb-3 text-lg font-semibold">Generated Documents</h3>
 
-            <div className="flex gap-2 mt-4">
-              <Button
-                variant={activeView === "invoice" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveView("invoice")}
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                Invoice Preview
-              </Button>
-              <Button
-                variant={activeView === "receipt" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveView("receipt")}
-              >
-                <Receipt className="mr-2 h-4 w-4" />
-                Receipt Preview
-              </Button>
+        {/* Invoice Preview */}
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <Button variant="secondary">Invoice Preview</Button>
+          <Button variant="outline">Receipt Preview</Button>
+        </div>
+
+        {/* Invoice “sheet” */}
+        <div className="rounded-lg border border-slate-200 bg-white p-6" id="invoice-preview">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-2xl font-extrabold tracking-tight">INVOICE</div>
+              <div className="text-blue-600 font-semibold">#{invoiceNumber}</div>
             </div>
-          </CardHeader>
-
-          <CardContent className="space-y-6">
-            {activeView === "invoice" && (
-              <>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-4">
-                    {/* On-page preview still uses relative path */}
-                    <img
-                      src="/images/bridgeocean-logo.jpg"
-                      crossOrigin="anonymous"
-                      alt="Bridgeocean Logo"
-                      className="h-16 w-16 object-contain"
-                    />
-                    <div>
-                      <h2 className="text-2xl font-bold">INVOICE</h2>
-                      <p className="text-lg font-semibold text-blue-600">#{invoiceData.invoiceNumber}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <h3 className="font-semibold text-lg">Bridgeocean Limited</h3>
-                    <p className="text-sm text-muted-foreground">Premium Charter Services</p>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="font-semibold mb-2">Bill To:</h4>
-                    <p className="text-lg">{invoiceData.customerName}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="font-medium">Service Date:</span>
-                      <span>{invoiceData.serviceDate}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Due Date:</span>
-                      <span>{invoiceData.dueDate}</span>
-                    </div>
-                    <div className="flex justify-between text-lg font-semibold">
-                      <span>Balance Due:</span>
-                      <span className="text-blue-600">{formatCurrency(invoiceData.balanceDue)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <div className="grid grid-cols-4 gap-4 font-semibold border-b pb-2 mb-4">
-                    <span>Item</span>
-                    <span>Quantity</span>
-                    <span>Rate</span>
-                    <span className="text-right">Amount</span>
-                  </div>
-                  <div className="grid grid-cols-4 gap-4 py-2">
-                    <span>
-                      {invoiceData.vehicle} ({invoiceData.duration})
-                    </span>
-                    <span>{invoiceData.quantity}</span>
-                    <span>{formatCurrency(invoiceData.rate)}</span>
-                    <span className="text-right">{formatCurrency(invoiceData.subtotal)}</span>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Subtotal:</span>
-                    <span>{formatCurrency(invoiceData.subtotal)}</span>
-                  </div>
-                  {invoiceData.vat > 0 && (
-                    <div className="flex justify-between">
-                      <span>VAT (7.5%):</span>
-                      <span>{formatCurrency(invoiceData.vat)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-lg font-semibold border-t pt-2">
-                    <span>Total:</span>
-                    <span>{formatCurrency(invoiceData.total)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Amount Paid:</span>
-                    <span>{formatCurrency(invoiceData.amountPaid)}</span>
-                  </div>
-                  <div className="flex justify-between text-lg font-semibold text-blue-600">
-                    <span>Balance Due:</span>
-                    <span>{formatCurrency(invoiceData.balanceDue)}</span>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {activeView === "receipt" && (
-              <>
-                <div className="max-w-md mx-auto bg-gray-50 p-6 border-2 border-gray-300 font-mono text-center">
-                  <div className="flex flex-col items-center">
-                    {/* On-page preview still uses relative path */}
-                    <img
-                      src="/images/bridgeocean-logo.jpg"
-                      crossOrigin="anonymous"
-                      alt="Bridgeocean Logo"
-                      className="h-14 w-14 object-contain mb-2"
-                    />
-                    <div className="text-lg font-bold mb-2">BRIDGEOCEAN LIMITED</div>
-                  </div>
-                  <div className="text-sm mb-4">{receiptData.timestamp}</div>
-
-                  <div className="text-left space-y-1 mb-4">
-                    <div>TRANS {receiptData.transactionId}</div>
-                    <div>MCC {receiptData.mccCode}</div>
-                    <div>PAYMENT - {receiptData.paymentMethod}</div>
-                  </div>
-
-                  <div className="text-left space-y-1 mb-4">
-                    <div className="flex justify-between">
-                      <span>SUBTOTAL:</span>
-                      <span>₦{receiptData.subtotal.toLocaleString()}.00</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>SERVICE:</span>
-                      <span>₦{receiptData.serviceCharge.toLocaleString()}.00</span>
-                    </div>
-                    <div className="flex justify-between font-bold border-t pt-1">
-                      <span>TOTAL:</span>
-                      <span>₦{receiptData.total.toLocaleString()}.00</span>
-                    </div>
-                  </div>
-
-                  <div className="text-sm space-y-1 mb-4">
-                    <div>PLEASE COME AGAIN</div>
-                    <div>THANK YOU</div>
-                  </div>
-
-                  <div className="text-sm font-bold">...........BRIDGEOCEAN LIMITED...........</div>
-                </div>
-              </>
-            )}
-
-            <div className="flex gap-2 pt-4">
-              <Button
-                onClick={() => {
-                  if (!invoiceData) return;
-                  setIsGeneratingInvoiceHTML(true);
-                  handleDownloadInvoiceHTML();
-                }}
-                disabled={isGeneratingInvoiceHTML}
-                className="flex-1"
-              >
-                {isGeneratingInvoiceHTML ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Building HTML…
-                  </>
-                ) : (
-                  <>
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Invoice (HTML)
-                  </>
-                )}
-              </Button>
-
-              <Button
-                onClick={() => {
-                  if (!receiptData) return;
-                  setIsGeneratingReceiptHTML(true);
-                  handleDownloadReceiptHTML();
-                }}
-                disabled={isGeneratingReceiptHTML}
-                variant="outline"
-                className="flex-1"
-              >
-                {isGeneratingReceiptHTML ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Building HTML…
-                  </>
-                ) : (
-                  <>
-                    <Receipt className="mr-2 h-4 w-4" />
-                    Download Receipt (HTML)
-                  </>
-                )}
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (!invoiceData || !receiptData) return;
-                  const text =
-                    activeView === "invoice"
-                      ? `Invoice #${invoiceData.invoiceNumber}
-Customer: ${invoiceData.customerName}
-Service: ${invoiceData.vehicle}
-Total: ${formatCurrency(invoiceData.total)}
-Balance Due: ${formatCurrency(invoiceData.balanceDue)}`
-                      : `Receipt ${receiptData.transactionId}
-Customer: ${receiptData.customerName}
-Amount: ₦${receiptData.total.toLocaleString()}
-Payment: ${receiptData.paymentMethod}`;
-                  navigator.clipboard.writeText(text);
-                  toast({
-                    title: "Copied to clipboard",
-                    description: `${activeView === "invoice" ? "Invoice" : "Receipt"} details copied.`,
-                  });
-                }}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
+            <div className="text-right">
+              <div className="text-lg font-semibold">{BRIDGEOCEAN_NAME}</div>
+              <div className="text-slate-500">{BRIDGEOCEAN_TAGLINE}</div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-6 pt-6">
+            <div>
+              <div className="text-sm font-semibold">Bill To:</div>
+              <div className="mt-1">
+                <input
+                  value={billTo}
+                  onChange={(e) => setBillTo(e.target.value)}
+                  className="w-full rounded-md border border-slate-300 p-2"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-sm font-semibold">Service Date:</div>
+                <input
+                  value={serviceDate}
+                  onChange={(e) => setServiceDate(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-slate-300 p-2"
+                />
+              </div>
+              <div>
+                <div className="text-sm font-semibold">Due Date:</div>
+                <input
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-slate-300 p-2"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Items */}
+          <div className="mt-6 overflow-x-auto">
+            <table className="w-full table-fixed border-collapse">
+              <thead>
+                <tr className="border-b">
+                  <th className="w-[55%] p-2 text-left text-sm text-slate-600">Item</th>
+                  <th className="w-[15%] p-2 text-left text-sm text-slate-600">Quantity</th>
+                  <th className="w-[15%] p-2 text-left text-sm text-slate-600">Rate</th>
+                  <th className="w-[15%] p-2 text-left text-sm text-slate-600">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((it, i) => {
+                  const amt = it.quantity * it.rate;
+                  return (
+                    <tr key={i} className="border-b">
+                      <td className="p-2">
+                        <input
+                          value={it.description}
+                          onChange={(e) => updateItem(i, { description: e.target.value })}
+                          className="w-full rounded-md border border-slate-300 p-2"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="number"
+                          value={it.quantity}
+                          onChange={(e) => updateItem(i, { quantity: Number(e.target.value) })}
+                          className="w-full rounded-md border border-slate-300 p-2"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="number"
+                          value={it.rate}
+                          onChange={(e) => updateItem(i, { rate: Number(e.target.value) })}
+                          className="w-full rounded-md border border-slate-300 p-2"
+                        />
+                      </td>
+                      <td className="p-2">{money(amt)}</td>
+                      <td className="p-2">
+                        {items.length > 1 && (
+                          <button className="text-red-600 text-sm" onClick={() => removeItem(i)}>
+                            remove
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <div className="mt-2">
+              <button className="text-sm text-blue-600 hover:underline" onClick={addItem}>
+                + Add item
+              </button>
+            </div>
+          </div>
+
+          {/* Totals */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div />
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-sm">
+                <span>Subtotal:</span><span>{money(subtotal)}</span>
+              </div>
+              <div className="flex items-center justify-between text-lg font-semibold">
+                <span>Total:</span><span>{money(total)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span>Amount Paid:</span>
+                <input
+                  type="number"
+                  value={amountPaid}
+                  onChange={(e) => setAmountPaid(Number(e.target.value))}
+                  className="w-32 rounded-md border border-slate-300 p-2 text-right"
+                />
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-semibold">Balance Due:</span>
+                <span className="font-semibold text-blue-600">{money(balance)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Downloads */}
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Button
+              className="bg-blue-600 text-white hover:bg-blue-700"
+              onClick={downloadInvoice}
+            >
+              Download Invoice (HTML)
+            </Button>
+            <Button variant="outline" onClick={downloadReceipt}>
+              Download Receipt (HTML)
+            </Button>
+          </div>
+
+          {/* Static Terms/Notes block IN the invoice content (so it downloads too) */}
+          {generated && (terms.trim() || notes.trim()) && (
+            <section className="mt-6 rounded-md border border-slate-200 bg-white p-4">
+              {terms.trim() && (
+                <>
+                  <h4 className="mb-1 text-sm font-semibold">Terms &amp; Payment details</h4>
+                  <pre className="whitespace-pre-wrap text-[12px] leading-relaxed text-slate-700">
+{terms.trim()}
+                  </pre>
+                </>
+              )}
+              {notes.trim() && (
+                <>
+                  <h4 className="mt-3 mb-1 text-sm font-semibold">Notes</h4>
+                  <pre className="whitespace-pre-wrap text-[12px] leading-relaxed text-slate-700">
+{notes.trim()}
+                  </pre>
+                </>
+              )}
+            </section>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
