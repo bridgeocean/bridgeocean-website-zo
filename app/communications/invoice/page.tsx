@@ -29,8 +29,7 @@ export default function InvoicePage() {
           <h2 className="text-3xl font-bold tracking-tight">AI Invoice Generator</h2>
         </div>
 
-        {/* NEW: Wrapper that renders your existing AI generator AND
-            adds Notes/Terms + WhatsApp interception (no changes to your component) */}
+        {/* This wrapper renders the generator + Notes/Terms and wires downloads */}
         <InvoiceNotesTermsBridge />
       </main>
     </div>
