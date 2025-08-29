@@ -14,8 +14,8 @@ Moniepoint Account details
 Moniepoint Account number: 8135261568
 Bridgeocean Limited`;
 
-/** Common invoice preview containers we try to mount into */
-const INVOICE_ROOT_SELECTORS = [
+/** Likely invoice containers we try in order */
+const CANDIDATE_SELECTORS = [
   "#invoice-preview",
   "[data-invoice-root]",
   ".invoice-preview",
@@ -24,47 +24,61 @@ const INVOICE_ROOT_SELECTORS = [
   "[data-pdf-root]",
 ];
 
-/** Find the invoice preview element; fall back to the largest white card */
-function findInvoiceRoot(base: HTMLElement | null): HTMLElement | null {
-  if (!base) return null;
+/** Heuristic: pick the “sheet” that looks like the invoice */
+function findInvoiceRoot(scope: HTMLElement | null): HTMLElement | null {
+  if (!scope) return null;
 
-  for (const sel of INVOICE_ROOT_SELECTORS) {
-    const el = base.querySelector<HTMLElement>(sel);
+  // 1) Known selectors
+  for (const sel of CANDIDATE_SELECTORS) {
+    const el = scope.querySelector<HTMLElement>(sel);
     if (el) return el;
   }
 
-  // Heuristic: first large white-ish card
-  const candidates = Array.from(base.querySelectorAll<HTMLElement>("section,div")).filter((n) => {
-    const s = window.getComputedStyle(n);
-    const w = n.getBoundingClientRect().width;
-    const h = n.getBoundingClientRect().height;
-    const bg = s.backgroundColor.toLowerCase();
-    return (
-      w > 500 &&
-      h > 400 &&
-      (bg.includes("255") || bg.includes("white") || bg === "rgb(255, 255, 255)")
-    );
-  });
+  // 2) Heuristic: large white card containing common invoice labels
+  const candidates = Array.from(scope.querySelectorAll<HTMLElement>("section, article, div")).filter(
+    (n) => {
+      const s = getComputedStyle(n);
+      const rect = n.getBoundingClientRect();
+      const bg = s.backgroundColor.toLowerCase();
+      const looksWhite = bg.includes("255") || bg.includes("white") || bg === "rgb(255, 255, 255)";
+      const big = rect.width > 500 && rect.height > 400;
+      const txt = n.textContent?.toLowerCase() || "";
+      const hasInvoiceWords =
+        txt.includes("invoice") && (txt.includes("item") || txt.includes("quantity"));
+      return big && looksWhite && hasInvoiceWords;
+    }
+  );
   return candidates[0] || null;
 }
 
 export function InvoiceNotesTermsBridge() {
   const wrapperRef = React.useRef<HTMLDivElement | null>(null);
 
-  // Notes & Terms
+  // Notes & Terms state
   const [notes, setNotes] = React.useState<string>("");
   const [terms, setTerms] = React.useState<string>(DEFAULT_BANK_DETAILS);
   const [autoBank, setAutoBank] = React.useState<boolean>(true);
 
-  // Show inside invoice only after user generates
+  // Whether we should show inside the document (after user generates)
   const [hasGenerated, setHasGenerated] = React.useState<boolean>(false);
 
-  // Where to render (portal target)
+  // Portal target (the actual invoice “sheet”)
   const [invoiceRoot, setInvoiceRoot] = React.useState<HTMLElement | null>(null);
 
-  /** Allow your AI to populate these via:
-   * window.dispatchEvent(new CustomEvent("bridgeocean:setInvoiceMeta", { detail: { notes, terms } }))
-   */
+  // Watch the DOM for preview changes and keep our root updated
+  React.useEffect(() => {
+    const scope = wrapperRef.current;
+    if (!scope) return;
+
+    const setRoot = () => setInvoiceRoot(findInvoiceRoot(scope));
+    setRoot();
+
+    const obs = new MutationObserver(() => setRoot());
+    obs.observe(scope, { childList: true, subtree: true });
+    return () => obs.disconnect();
+  }, []);
+
+  // Allow AI parser to prefill notes/terms from WhatsApp chat
   React.useEffect(() => {
     const handler = (e: Event) => {
       const { notes: n, terms: t } = (e as CustomEvent).detail || {};
@@ -75,18 +89,16 @@ export function InvoiceNotesTermsBridge() {
     return () => window.removeEventListener("bridgeocean:setInvoiceMeta", handler as EventListener);
   }, []);
 
-  /** Detect “Generate Invoice” click and (re)locate the invoice preview root */
+  // Detect buttons that look like “Generate invoice”
   React.useEffect(() => {
-    const root = wrapperRef.current;
-    if (!root) return;
-
-    const onClickCapture = (e: Event) => {
+    const scope = wrapperRef.current;
+    if (!scope) return;
+    const onClick = (e: Event) => {
       const el = e.target as HTMLElement | null;
       if (!el) return;
-      const clickable = el.closest("button, a, [role='button']") as HTMLElement | null;
-      if (!clickable || !root.contains(clickable)) return;
-
-      const text = (clickable.textContent || "").toLowerCase();
+      const btn = el.closest("button, a, [role='button']") as HTMLElement | null;
+      if (!btn || !scope.contains(btn)) return;
+      const text = (btn.textContent || "").toLowerCase();
       if (
         text.includes("generate invoice") ||
         text.includes("generate invoice & receipt") ||
@@ -94,70 +106,57 @@ export function InvoiceNotesTermsBridge() {
         text.includes("build invoice")
       ) {
         setHasGenerated(true);
-        setTimeout(() => {
-          setInvoiceRoot(findInvoiceRoot(root));
-        }, 60);
       }
     };
-
-    document.addEventListener("click", onClickCapture, true);
-
-    // Initial scan on mount (in case preview is already visible)
-    setInvoiceRoot(findInvoiceRoot(root));
-
-    return () => document.removeEventListener("click", onClickCapture, true);
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
   }, []);
 
-  /** Ensure the preview root is a positioned container so our absolute panel anchors INSIDE it */
+  // Ensure invoiceRoot can position children (not required now that we render static, but harmless)
   React.useEffect(() => {
     if (!invoiceRoot) return;
-    const s = window.getComputedStyle(invoiceRoot);
-    const hadStatic = s.position === "static";
-    if (hadStatic) invoiceRoot.style.position = "relative";
-
-    // Clean up: don’t leave inline style if we added it
+    const before = getComputedStyle(invoiceRoot).position;
+    if (before === "static") invoiceRoot.style.position = "relative";
     return () => {
-      if (hadStatic && invoiceRoot) invoiceRoot.style.position = "";
+      if (invoiceRoot && before === "static") invoiceRoot.style.position = "";
     };
   }, [invoiceRoot]);
 
-  // Should we show the panel?
-  const hasAnyTerms = (autoBank && DEFAULT_BANK_DETAILS) || terms.trim();
-  const shouldShowPanel = hasGenerated && (notes.trim() || hasAnyTerms);
+  const shouldRenderInside =
+    hasGenerated && (notes.trim() || (autoBank && DEFAULT_BANK_DETAILS) || terms.trim());
 
-  /** The actual panel that appears bottom-left inside the invoice */
-  const termsPanel = (
-    <div
-      data-bridgeocean-terms-panel
-      className="pointer-events-none absolute left-4 bottom-4 z-20 w-[min(440px,45%)] print:left-4 print:bottom-4"
-      style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}
+  /** The actual section that will be *part of the invoice content* (static block at the bottom) */
+  const staticTermsBlock = (
+    <section
+      // Unique marker so we don’t accidentally duplicate
+      data-bridgeocean-terms-block
+      className="mt-8 rounded-md border border-slate-200 bg-white p-4 text-[12px] leading-relaxed"
+      style={{ breakInside: "avoid" }} // helps PDF engines keep it together
     >
-      <div className="pointer-events-auto rounded-md border border-slate-300 bg-white/95 p-3 shadow">
-        <div className="text-xs font-semibold">Terms &amp; Payment details</div>
-        <pre className="mt-1 whitespace-pre-wrap text-[11px] leading-snug text-slate-700">
+      <h4 className="mb-1 text-sm font-semibold">Terms &amp; Payment details</h4>
+      <pre className="whitespace-pre-wrap text-slate-700">
 {(autoBank && !terms.trim()) ? DEFAULT_BANK_DETAILS : terms.trim()}
-        </pre>
+      </pre>
 
-        {notes.trim() && (
-          <>
-            <div className="mt-2 text-xs font-semibold">Notes</div>
-            <pre className="mt-1 whitespace-pre-wrap text-[11px] leading-snug text-slate-700">
+      {notes.trim() && (
+        <>
+          <h4 className="mt-3 mb-1 text-sm font-semibold">Notes</h4>
+          <pre className="whitespace-pre-wrap text-slate-700">
 {notes.trim()}
-            </pre>
-          </>
-        )}
-      </div>
-    </div>
+          </pre>
+        </>
+      )}
+    </section>
   );
 
   return (
     <div ref={wrapperRef} className="space-y-8">
-      {/* Your existing AI WhatsApp → invoice generator */}
+      {/* Your existing WhatsApp → AI → Invoice generator (unchanged) */}
       <AIInvoiceGenerator />
 
-      {/* Controls */}
+      {/* Controls for Notes/Terms */}
       <section className="rounded-lg border border-slate-200 p-4">
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-base font-semibold">Notes &amp; Terms / Payment details</h3>
           <label className="inline-flex select-none items-center gap-2 text-sm">
             <input
@@ -176,7 +175,6 @@ export function InvoiceNotesTermsBridge() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          {/* Notes */}
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">Notes</label>
             <textarea
@@ -188,7 +186,6 @@ export function InvoiceNotesTermsBridge() {
             />
           </div>
 
-          {/* Terms */}
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">
               Terms &amp; Payment details
@@ -230,18 +227,18 @@ export function InvoiceNotesTermsBridge() {
         </div>
 
         <p className="mt-3 text-xs text-slate-500">
-          Click <em>Generate Invoice</em> above — the Terms/Notes box will appear inside the invoice,
-          bottom-left, and will be included in HTML/PDF downloads.
+          After you click <em>Generate Invoice</em>, this section is injected at the very bottom of
+          the invoice document so it appears in preview and in downloaded HTML/PDF.
         </p>
       </section>
 
-      {/* Mount INSIDE the invoice preview so it prints/exports with it */}
-      {shouldShowPanel &&
+      {/* Mount as a NORMAL block at the bottom of the invoice content */}
+      {shouldRenderInside &&
         (invoiceRoot
-          ? ReactDOM.createPortal(termsPanel, invoiceRoot)
+          ? ReactDOM.createPortal(staticTermsBlock, invoiceRoot)
           : (
-            // Fallback: still render near the invoice if we couldn't detect a root
-            <div className="relative">{termsPanel}</div>
+            // Fallback: if we couldn't detect the invoice root, render below generator
+            <div>{staticTermsBlock}</div>
           ))}
     </div>
   );
