@@ -59,13 +59,6 @@ function roughParseFromChat(chat: string) {
 
 const BRIDGEOCEAN_NAME = "Bridgeocean Limited";
 const BRIDGEOCEAN_TAGLINE = "Premium Charter Services";
-const DEFAULT_BANK_DETAILS = `Zenith Bank Account (preferred)
-Zenith Account number: 1229647858
-Bridgeocean Limited
-
-Moniepoint Account details
-Moniepoint Account number: 8135261568
-Bridgeocean Limited`;
 
 function buildInvoiceHTML(opts: {
   invoiceNumber: string;
@@ -234,7 +227,6 @@ function buildReceiptHTML(opts: {
 
 type Item = { description: string; quantity: number; rate: number; };
 type Props = {
-  /** Optional: if something higher up wants to prefill these, it still can. */
   notes?: string;
   terms?: string;
   autoBank?: boolean;
@@ -252,14 +244,6 @@ export function AIInvoiceGenerator({ notes = "", terms = "", autoBank = true }: 
   const [serviceDate, setServiceDate] = React.useState<string>(todayISO());
   const [dueDate, setDueDate] = React.useState<string>(addDaysISO(1));
   const [amountPaid, setAmountPaid] = React.useState<number>(0);
-
-  // Notes/Terms UI (kept inside this component so it’s one file)
-  const [notesLocal, setNotesLocal] = React.useState<string>(notes);
-  const [termsLocal, setTermsLocal] = React.useState<string>(terms);
-  const [autoBankLocal, setAutoBankLocal] = React.useState<boolean>(autoBank);
-
-  const effectiveTerms =
-    autoBankLocal && !termsLocal.trim() ? DEFAULT_BANK_DETAILS : termsLocal.trim();
 
   const [generated, setGenerated] = React.useState<boolean>(false);
   const [invoiceNumber, setInvoiceNumber] = React.useState<string>(() => {
@@ -306,8 +290,8 @@ export function AIInvoiceGenerator({ notes = "", terms = "", autoBank = true }: 
       dueDate,
       items,
       amountPaid,
-      notesText: notesLocal,
-      termsText: effectiveTerms,
+      notesText: notes,
+      termsText: terms,
     });
     download(`Invoice-${invoiceNumber}-Bridgeocean.html`, html);
   }
@@ -319,7 +303,7 @@ export function AIInvoiceGenerator({ notes = "", terms = "", autoBank = true }: 
       date: todayISO(),
       items,
       amountPaid: amountPaid || items.reduce((s, it) => s + it.quantity * it.rate, 0),
-      notesText: notesLocal,
+      notesText: notes,
     });
     download(`Receipt-${receiptNumber}-Bridgeocean.html`, html);
   }
@@ -503,97 +487,27 @@ export function AIInvoiceGenerator({ notes = "", terms = "", autoBank = true }: 
           </div>
 
           {/* Static Terms/Notes block IN the invoice content (so it downloads too) */}
-          {generated && (effectiveTerms || notesLocal.trim()) && (
+          {generated && (terms.trim() || notes.trim()) && (
             <section className="mt-6 rounded-md border border-slate-200 bg-white p-4">
-              {effectiveTerms && (
+              {terms.trim() && (
                 <>
                   <h4 className="mb-1 text-sm font-semibold">Terms &amp; Payment details</h4>
                   <pre className="whitespace-pre-wrap text-[12px] leading-relaxed text-slate-700">
-{effectiveTerms}
+{terms.trim()}
                   </pre>
                 </>
               )}
-              {notesLocal.trim() && (
+              {notes.trim() && (
                 <>
                   <h4 className="mt-3 mb-1 text-sm font-semibold">Notes</h4>
                   <pre className="whitespace-pre-wrap text-[12px] leading-relaxed text-slate-700">
-{notesLocal.trim()}
+{notes.trim()}
                   </pre>
                 </>
               )}
             </section>
           )}
         </div>
-
-        {/* Notes & Terms / Payment details (control panel) */}
-        <section className="mt-6 rounded-lg border border-slate-200 p-4">
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-            <h3 className="text-base font-semibold">Notes &amp; Terms / Payment details</h3>
-            <label className="inline-flex select-none items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-slate-300"
-                checked={autoBankLocal}
-                onChange={(e) => setAutoBankLocal(e.target.checked)}
-              />
-              Auto-insert Bridgeocean bank details
-            </label>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Notes</label>
-              <textarea
-                value={notesLocal}
-                onChange={(e) => setNotesLocal(e.target.value)}
-                placeholder="Any relevant information not already covered…"
-                className="w-full rounded-md border border-slate-300 p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                rows={6}
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">
-                Terms &amp; Payment details
-              </label>
-              <textarea
-                value={termsLocal}
-                onChange={(e) => setTermsLocal(e.target.value)}
-                placeholder="Payment terms, deadlines, methods. Bank details can live here."
-                className="w-full rounded-md border border-slate-300 p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                rows={6}
-              />
-              <div className="mt-2 flex flex-wrap gap-2">
-                <Button type="button" variant="outline" onClick={() => setTermsLocal(DEFAULT_BANK_DETAILS)}>
-                  Reset to Bridgeocean bank details
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={async () => {
-                    const snippet =
-                      (notesLocal.trim() ? `Notes:\n${notesLocal.trim()}\n\n` : "") +
-                      (effectiveTerms ? `Terms & Payment Details:\n${effectiveTerms}` : "");
-                    if (!snippet) return;
-                    try {
-                      await navigator.clipboard.writeText(snippet);
-                      alert("Notes & Terms copied to clipboard.");
-                    } catch {
-                      alert("Copy failed. Select text and copy manually.");
-                    }
-                  }}
-                >
-                  Copy Notes & Terms
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <p className="mt-3 text-xs text-slate-500">
-            After you click <em>Generate Invoice</em>, the section is shown inside the invoice.
-            Downloads include the same content automatically.
-          </p>
-        </section>
       </section>
     </div>
   );
