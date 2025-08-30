@@ -1,3 +1,4 @@
+// components/ai-invoice-generator.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -48,7 +49,7 @@ Moniepoint Account details
 Moniepoint Account number: 8135261568
 Bridgeocean Limited`;
 
-/* text normalizer for de-duplication */
+/* text normalizer for de-duplication in preview */
 const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
 
 /* ---------- Component ---------- */
@@ -327,7 +328,6 @@ export function AIInvoiceGenerator() {
       setReceiptData(generateReceiptData(clean));
 
       /* Do NOT prefill notes with fallback. Leave what the user typed (default empty). */
-      // setNotesInput(...)  <-- intentionally not prefilling
 
       toast({ title: "Invoice & Receipt generated", description: "Hybrid extraction completed." });
     } catch {
@@ -518,9 +518,9 @@ export function AIInvoiceGenerator() {
     try {
       setIsGeneratingInvoiceHTML(true);
 
-      /* ONLY export typed inputs (never any fallback) */
-      const noteForHtml = notesInput.trim();
-      const termsForHtml = effectiveTerms;
+      /* ONLY export typed inputs (never any fallback or auto-insert) */
+      const noteForHtml  = notesInput.trim();
+      const termsForHtml = termsInput.trim();   // <-- key fix: DO NOT use effectiveTerms here
 
       const html = buildInvoiceHTML(
         { ...invoiceData, notes: "", terms: "" }, // keep state sanitized
