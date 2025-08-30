@@ -279,7 +279,7 @@ export function AIInvoiceGenerator() {
 
     const quantity = 1;
     const subtotal = finalRate * quantity;
-    the const vat = includeVAT ? Math.round(subtotal * 0.075) : 0;
+    const vat = includeVAT ? Math.round(subtotal * 0.075) : 0;
     const total = subtotal + vat;
     const balanceDue = total - (ex.amountPaid || 0);
 
