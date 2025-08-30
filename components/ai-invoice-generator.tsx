@@ -38,6 +38,15 @@ interface ReceiptData {
   customerName: string;
 }
 
+// ---- Bridgeocean default bank details (used when "Auto-insert" is ON and Terms input is empty)
+const BRIDGEOCEAN_BANK_DETAILS = `Zenith Bank Account (preferred)
+Zenith Account number: 1229647858
+Bridgeocean Limited
+
+Moniepoint Account details
+Moniepoint Account number: 8135261568
+Bridgeocean Limited`;
+
 export function AIInvoiceGenerator() {
   const [whatsappChat, setWhatsappChat] = useState("");
   const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null);
@@ -48,6 +57,16 @@ export function AIInvoiceGenerator() {
   const [activeView, setActiveView] = useState<"invoice" | "receipt">("invoice");
   const [includeVAT, setIncludeVAT] = useState(false);
   const { toast } = useToast();
+
+  // NEW: Notes/Terms inputs + auto-insert toggle (UI lives under preview)
+  const [notesInput, setNotesInput] = useState<string>("");
+  const [termsInput, setTermsInput] = useState<string>("");
+  const [autoInsertBank, setAutoInsertBank] = useState<boolean>(true);
+
+  // Effective terms text that will be shown/embedded
+  const effectiveTerms = (autoInsertBank && !termsInput.trim())
+    ? BRIDGEOCEAN_BANK_DETAILS
+    : termsInput.trim();
 
   // NEW: data URL of the logo for downloaded HTML
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
@@ -308,6 +327,11 @@ export function AIInvoiceGenerator() {
       const data = await extractInvoiceDataWithAI(whatsappChat);
       setInvoiceData(data);
       setReceiptData(generateReceiptData(data)); // receipt mirrors invoice total
+
+      // Prefill Notes input if user hasn't typed anything yet
+      setNotesInput((prev) => prev || data.notes || "");
+      // Terms textarea stays as user types; auto-insert toggle will supply bank details if left empty
+
       toast({ title: "Invoice & Receipt generated", description: "Hybrid extraction completed." });
     } catch (e) {
       toast({
@@ -341,6 +365,8 @@ export function AIInvoiceGenerator() {
     .total-row { display: flex; justify-content: space-between; padding: 6px 0; }
     .total-final { font-weight: bold; font-size: 18px; border-top: 2px solid #000; padding-top: 10px; }
     .notes { margin-top: 30px; }
+    .notes h4 { margin: 12px 0 4px; }
+    .notes pre { white-space: pre-wrap; font-family: inherit; }
   </style>
 </head>
 <body>
@@ -390,10 +416,8 @@ export function AIInvoiceGenerator() {
   </div>
 
   <div class="notes">
-    <h4>Notes:</h4>
-    <p>${inv.notes}</p>
-    <h4>Terms:</h4>
-    <p>${inv.terms}</p>
+    ${inv.terms ? `<h4>Terms &amp; Payment details</h4><pre>${inv.terms}</pre>` : ""}
+    ${inv.notes ? `<h4>Notes</h4><pre>${inv.notes}</pre>` : ""}
   </div>
 </body>
 </html>`;
@@ -466,7 +490,14 @@ export function AIInvoiceGenerator() {
     if (!invoiceData) return;
     try {
       setIsGeneratingInvoiceHTML(true);
-      const html = buildInvoiceHTML(invoiceData);
+
+      // IMPORTANT: override notes/terms with the UI inputs BEFORE building HTML
+      const html = buildInvoiceHTML({
+        ...invoiceData,
+        notes: notesInput.trim(),
+        terms: effectiveTerms,
+      });
+
       downloadHTMLFile(html, `Invoice-${invoiceData.invoiceNumber}-Bridgeocean.html`);
       toast({ title: "Invoice downloaded (HTML)", description: `#${invoiceData.invoiceNumber}` });
     } catch (e: any) {
@@ -698,6 +729,31 @@ Bridgeocean: Confirmed.`,
                     <span>{formatCurrency(invoiceData.balanceDue)}</span>
                   </div>
                 </div>
+
+                {/* NEW: show the Terms/Notes inside the preview (bottom of invoice) */}
+                {(effectiveTerms || notesInput.trim()) && (
+                  <>
+                    <Separator />
+                    <section className="rounded-md border bg-white p-4">
+                      {effectiveTerms && (
+                        <>
+                          <h4 className="mb-1 text-sm font-semibold">Terms &amp; Payment details</h4>
+                          <pre className="whitespace-pre-wrap text-[12px] leading-relaxed text-slate-700">
+{effectiveTerms}
+                          </pre>
+                        </>
+                      )}
+                      {notesInput.trim() && (
+                        <>
+                          <h4 className="mt-3 mb-1 text-sm font-semibold">Notes</h4>
+                          <pre className="whitespace-pre-wrap text-[12px] leading-relaxed text-slate-700">
+{notesInput.trim()}
+                          </pre>
+                        </>
+                      )}
+                    </section>
+                  </>
+                )}
               </>
             )}
 
@@ -747,6 +803,7 @@ Bridgeocean: Confirmed.`,
               </>
             )}
 
+            {/* Download buttons */}
             <div className="flex gap-2 pt-4">
               <Button
                 onClick={() => {
@@ -818,6 +875,57 @@ Payment: ${receiptData.paymentMethod}`;
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
+
+            {/* NEW: Notes & Terms editor (the inputs you asked for). Sits under buttons. */}
+            <section className="rounded-lg border p-4 mt-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold">Notes &amp; Terms / Payment details</h3>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="auto-insert-bank"
+                    checked={autoInsertBank}
+                    onCheckedChange={(v) => setAutoInsertBank(!!v)}
+                  />
+                  <label htmlFor="auto-insert-bank" className="text-sm">
+                    Auto-insert Bridgeocean bank details
+                  </label>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-sm font-medium">Notes</label>
+                  <Textarea
+                    placeholder="Any relevant information not already covered…"
+                    rows={6}
+                    value={notesInput}
+                    onChange={(e) => setNotesInput(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium">Terms &amp; Payment details</label>
+                  <Textarea
+                    placeholder="Payment terms / bank details…"
+                    rows={6}
+                    value={termsInput}
+                    onChange={(e) => setTermsInput(e.target.value)}
+                  />
+                  <div className="mt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTermsInput(BRIDGEOCEAN_BANK_DETAILS)}
+                    >
+                      Reset to Bridgeocean bank details
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <p className="mt-3 text-xs text-muted-foreground">
+                The section appears at the bottom of the invoice preview and is included in the downloaded HTML.
+              </p>
+            </section>
           </CardContent>
         </Card>
       )}
