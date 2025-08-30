@@ -48,7 +48,7 @@ Moniepoint Account details
 Moniepoint Account number: 8135261568
 Bridgeocean Limited`;
 
-/* Normalizer used for strict de-duplication */
+/* text normalizer for de-duplication */
 const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
 
 /* ---------- Component ---------- */
@@ -64,17 +64,16 @@ export function AIInvoiceGenerator() {
   const [includeVAT, setIncludeVAT] = useState(false);
   const { toast } = useToast();
 
-  /* User-facing Notes & Terms controls */
-  const [notesInput, setNotesInput] = useState<string>("");     // what you type
-  const [termsInput, setTermsInput] = useState<string>("");     // what you type
+  /* Only export what the user actually typed */
+  const [notesInput, setNotesInput] = useState<string>("");     // user notes
+  const [termsInput, setTermsInput] = useState<string>("");     // user terms
   const [autoInsertBank, setAutoInsertBank] = useState<boolean>(true);
 
-  /* Terms that show in preview when user leaves it blank */
   const effectiveTerms = (autoInsertBank && !termsInput.trim())
     ? BRIDGEOCEAN_BANK_DETAILS
     : termsInput.trim();
 
-  /* data URL for the logo in the downloaded HTML */
+  /* data URL for the logo in downloaded HTML */
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
   useEffect(() => {
     const loadLogoAsDataURL = async (path: string) => {
@@ -94,7 +93,6 @@ export function AIInvoiceGenerator() {
     loadLogoAsDataURL("/images/bridgeocean-logo.jpg");
   }, []);
 
-  /* utilities */
   const downloadHTMLFile = (html: string, filename: string) => {
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -132,7 +130,7 @@ export function AIInvoiceGenerator() {
     };
   };
 
-  /* -------- Hybrid extractor (same as before) -------- */
+  /* -------- Hybrid extractor (unchanged logic) -------- */
   const hybridExtraction = (chat: string) => {
     const lower = chat.toLowerCase();
 
@@ -294,8 +292,8 @@ export function AIInvoiceGenerator() {
       total,
       amountPaid: ex.amountPaid || 0,
       balanceDue,
-      notes,
-      terms: "Payment terms as agreed in conversation",
+      notes,                                   // fallback (we will strip out below)
+      terms: "Payment terms as agreed in conversation", // (strip below)
     };
   };
 
@@ -321,11 +319,16 @@ export function AIInvoiceGenerator() {
       return;
     }
     try {
-      const data = await extractInvoiceDataWithAI(whatsappChat);
-      setInvoiceData(data);
-      setReceiptData(generateReceiptData(data));
-      /* Pre-fill Notes once so you have something to edit, but we will NOT export the fallback later */
-      setNotesInput((prev) => prev || data.notes || "");
+      const raw = await extractInvoiceDataWithAI(whatsappChat);
+
+      /* IMPORTANT: store a sanitized invoice in state so no fallback can leak anywhere */
+      const clean: InvoiceData = { ...raw, notes: "", terms: "" };
+      setInvoiceData(clean);
+      setReceiptData(generateReceiptData(clean));
+
+      /* Do NOT prefill notes with fallback. Leave what the user typed (default empty). */
+      // setNotesInput(...)  <-- intentionally not prefilling
+
       toast({ title: "Invoice & Receipt generated", description: "Hybrid extraction completed." });
     } catch {
       toast({
@@ -336,7 +339,7 @@ export function AIInvoiceGenerator() {
     }
   };
 
-  /* ---------- HTML builder (only exports typed inputs; dedupe hard-stop) ---------- */
+  /* ---------- HTML builder (only exports user inputs; with de-dup) ---------- */
 
   const buildInvoiceHTML = (inv: InvoiceData, htmlTerms: string, htmlNotes: string) => {
     const esc = (s: string) =>
@@ -345,11 +348,9 @@ export function AIInvoiceGenerator() {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
 
-    // Only use what the user provided in the UI (NOT the fallback)
     const termsText = (htmlTerms || "").trim();
     const notesText = (htmlNotes || "").trim();
 
-    // Enforce de-duplication (same text won’t render twice)
     const seen = new Set<string>();
     const blocks: Array<{ title: string; text: string }> = [];
     if (termsText && !seen.has(norm(termsText))) {
@@ -517,15 +518,12 @@ export function AIInvoiceGenerator() {
     try {
       setIsGeneratingInvoiceHTML(true);
 
-      /* CRUCIAL: Only export what the user typed. 
-         - Notes: use notesInput (not the fallback/default)
-         - Terms: use effectiveTerms (bank details if auto-insert ON & empty field)
-      */
+      /* ONLY export typed inputs (never any fallback) */
       const noteForHtml = notesInput.trim();
       const termsForHtml = effectiveTerms;
 
       const html = buildInvoiceHTML(
-        { ...invoiceData, notes: "", terms: "" }, // clear any fallbacks to avoid duplicates
+        { ...invoiceData, notes: "", terms: "" }, // keep state sanitized
         termsForHtml,
         noteForHtml
       );
@@ -763,7 +761,7 @@ Bridgeocean: Confirmed.`,
                   </div>
                 </div>
 
-                {/* Preview uses effectiveTerms + your typed notes. */}
+                {/* Preview: show effectiveTerms + your typed notes (no fallback) */}
                 {(effectiveTerms || notesInput.trim()) && (
                   <>
                     <Separator />
@@ -835,7 +833,7 @@ Bridgeocean: Confirmed.`,
               </>
             )}
 
-            {/* Download buttons */}
+            {/* Downloads */}
             <div className="flex gap-2 pt-4">
               <Button
                 onClick={() => {
@@ -908,7 +906,7 @@ Payment: ${receiptData.paymentMethod}`;
               </Button>
             </div>
 
-            {/* Notes & Terms editor */}
+            {/* Editor */}
             <section className="rounded-lg border p-4 mt-4">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold">Notes &amp; Terms / Payment details</h3>
