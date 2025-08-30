@@ -38,7 +38,8 @@ interface ReceiptData {
   customerName: string;
 }
 
-// ---- Bridgeocean default bank details (used when "Auto-insert" is ON and Terms input is empty)
+/* ---------- Defaults ---------- */
+
 const BRIDGEOCEAN_BANK_DETAILS = `Zenith Bank Account (preferred)
 Zenith Account number: 1229647858
 Bridgeocean Limited
@@ -47,8 +48,10 @@ Moniepoint Account details
 Moniepoint Account number: 8135261568
 Bridgeocean Limited`;
 
-// ---- helper to normalize text (for dedupe)
+/* Normalizer used for strict de-duplication */
 const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
+
+/* ---------- Component ---------- */
 
 export function AIInvoiceGenerator() {
   const [whatsappChat, setWhatsappChat] = useState("");
@@ -61,22 +64,18 @@ export function AIInvoiceGenerator() {
   const [includeVAT, setIncludeVAT] = useState(false);
   const { toast } = useToast();
 
-  // Notes/Terms inputs + auto-insert toggle
-  const [notesInput, setNotesInput] = useState<string>("");
-  const [termsInput, setTermsInput] = useState<string>("");
+  /* User-facing Notes & Terms controls */
+  const [notesInput, setNotesInput] = useState<string>("");     // what you type
+  const [termsInput, setTermsInput] = useState<string>("");     // what you type
   const [autoInsertBank, setAutoInsertBank] = useState<boolean>(true);
 
-  // Terms that will be shown/embedded
+  /* Terms that show in preview when user leaves it blank */
   const effectiveTerms = (autoInsertBank && !termsInput.trim())
     ? BRIDGEOCEAN_BANK_DETAILS
     : termsInput.trim();
 
-  // Use typed notes if present; else fallback to extracted default
-  const liveNotes = (notesInput.trim() || invoiceData?.notes?.trim() || "");
-
-  // data URL of the logo for downloaded HTML
+  /* data URL for the logo in the downloaded HTML */
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
-
   useEffect(() => {
     const loadLogoAsDataURL = async (path: string) => {
       try {
@@ -90,14 +89,12 @@ export function AIInvoiceGenerator() {
           reader.readAsDataURL(blob);
         });
         setLogoDataUrl(dataUrl);
-      } catch {
-        /* ignore */
-      }
+      } catch {}
     };
     loadLogoAsDataURL("/images/bridgeocean-logo.jpg");
   }, []);
 
-  // save .html file helper
+  /* utilities */
   const downloadHTMLFile = (html: string, filename: string) => {
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -110,7 +107,6 @@ export function AIInvoiceGenerator() {
     URL.revokeObjectURL(url);
   };
 
-  // ---------- Receipt helper (mirror Invoice Total) ----------
   const generateReceiptData = (invoice: InvoiceData): ReceiptData => {
     const now = new Date();
     const timestamp =
@@ -136,35 +132,31 @@ export function AIInvoiceGenerator() {
     };
   };
 
-  // ---------- Hybrid extractor ----------
+  /* -------- Hybrid extractor (same as before) -------- */
   const hybridExtraction = (chat: string) => {
     const lower = chat.toLowerCase();
 
     type Amt = { value: number; index: number; ctx: string };
     const amounts: Amt[] = [];
-
-    function pushAmount(value: number, index: number) {
+    const pushAmount = (value: number, index: number) => {
       if (!Number.isFinite(value) || value < 1000) return;
       const ctx = chat.slice(Math.max(0, index - 80), Math.min(chat.length, index + 80)).toLowerCase();
       amounts.push({ value: Math.round(value), index, ctx });
-    }
-
-    function parseAmount(numRaw: string, unitRaw?: string) {
+    };
+    const parseAmount = (numRaw: string, unitRaw?: string) => {
       const n = parseFloat(numRaw.replace(/,/g, ""));
       if (!Number.isFinite(n)) return NaN;
       const unit = (unitRaw || "").toLowerCase();
       if (unit === "million" || unit === "m") return n * 1_000_000;
       if (unit === "thousand" || unit === "k") return n * 1_000;
       return n;
-    }
+    };
 
     let m: RegExpExecArray | null;
     let re1 = /(₦|ngn|(?<![a-z])n)\s*([\d.,]+)\s*(million|m|thousand|k)?/gi;
     while ((m = re1.exec(chat)) !== null) pushAmount(parseAmount(m[2], m[3]), m.index);
-
     let re2 = /([\d.,]+)\s*(million|m|thousand|k)\b/gi;
     while ((m = re2.exec(chat)) !== null) pushAmount(parseAmount(m[1], m[2]), m.index);
-
     let re3 = /(\d{1,3}(?:,\d{3})+)(?!\S)/g;
     while ((m = re3.exec(chat)) !== null) pushAmount(parseAmount(m[1]), m.index);
 
@@ -254,7 +246,6 @@ export function AIInvoiceGenerator() {
     };
   };
 
-  // ---------- Build invoice from hybrid result ----------
   const extractInvoiceData = async (chat: string): Promise<InvoiceData> => {
     const ex = hybridExtraction(chat);
 
@@ -308,7 +299,8 @@ export function AIInvoiceGenerator() {
     };
   };
 
-  // ---------- Actions ----------
+  /* ---------- Actions ---------- */
+
   const extractInvoiceDataWithAI = async (chat: string) => {
     setIsGenerating(true);
     try {
@@ -331,10 +323,11 @@ export function AIInvoiceGenerator() {
     try {
       const data = await extractInvoiceDataWithAI(whatsappChat);
       setInvoiceData(data);
-      setReceiptData(generateReceiptData(data)); // receipt mirrors invoice total
-      setNotesInput((prev) => prev || data.notes || ""); // Prefill notes once
+      setReceiptData(generateReceiptData(data));
+      /* Pre-fill Notes once so you have something to edit, but we will NOT export the fallback later */
+      setNotesInput((prev) => prev || data.notes || "");
       toast({ title: "Invoice & Receipt generated", description: "Hybrid extraction completed." });
-    } catch (e) {
+    } catch {
       toast({
         title: "Error generating invoice",
         description: "Please try again or check the conversation format.",
@@ -343,21 +336,28 @@ export function AIInvoiceGenerator() {
     }
   };
 
-  // ---------- HTML builder (dedup Terms/Notes, escape content) ----------
-  const buildInvoiceHTML = (inv: InvoiceData) => {
+  /* ---------- HTML builder (only exports typed inputs; dedupe hard-stop) ---------- */
+
+  const buildInvoiceHTML = (inv: InvoiceData, htmlTerms: string, htmlNotes: string) => {
     const esc = (s: string) =>
       (s || "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
 
-    const termsText = (inv.terms || "").trim();
-    const notesText = (inv.notes || "").trim();
+    // Only use what the user provided in the UI (NOT the fallback)
+    const termsText = (htmlTerms || "").trim();
+    const notesText = (htmlNotes || "").trim();
 
-    // Build unique blocks; if Notes equals Terms, only render once.
+    // Enforce de-duplication (same text won’t render twice)
+    const seen = new Set<string>();
     const blocks: Array<{ title: string; text: string }> = [];
-    if (termsText) blocks.push({ title: "Terms & Payment details", text: termsText });
-    if (notesText && norm(notesText) !== norm(termsText)) {
+    if (termsText && !seen.has(norm(termsText))) {
+      seen.add(norm(termsText));
+      blocks.push({ title: "Terms & Payment details", text: termsText });
+    }
+    if (notesText && !seen.has(norm(notesText))) {
+      seen.add(norm(notesText));
       blocks.push({ title: "Notes", text: notesText });
     }
 
@@ -510,18 +510,25 @@ export function AIInvoiceGenerator() {
 </body>
 </html>`;
 
-  // ---------- Download handlers (HTML only) ----------
+  /* ---------- Downloads ---------- */
+
   const handleDownloadInvoiceHTML = () => {
     if (!invoiceData) return;
     try {
       setIsGeneratingInvoiceHTML(true);
 
-      // Use the same values the preview shows (dedup handled by builder)
-      const html = buildInvoiceHTML({
-        ...invoiceData,
-        notes: liveNotes,
-        terms: effectiveTerms,
-      });
+      /* CRUCIAL: Only export what the user typed. 
+         - Notes: use notesInput (not the fallback/default)
+         - Terms: use effectiveTerms (bank details if auto-insert ON & empty field)
+      */
+      const noteForHtml = notesInput.trim();
+      const termsForHtml = effectiveTerms;
+
+      const html = buildInvoiceHTML(
+        { ...invoiceData, notes: "", terms: "" }, // clear any fallbacks to avoid duplicates
+        termsForHtml,
+        noteForHtml
+      );
 
       downloadHTMLFile(html, `Invoice-${invoiceData.invoiceNumber}-Bridgeocean.html`);
       toast({ title: "Invoice downloaded (HTML)", description: `#${invoiceData.invoiceNumber}` });
@@ -546,7 +553,8 @@ export function AIInvoiceGenerator() {
     }
   };
 
-  // ---------- UI helpers ----------
+  /* ---------- UI helpers ---------- */
+
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 }).format(amount);
 
@@ -569,7 +577,8 @@ Customer: That's fine, I'll make full payment
 Bridgeocean: Confirmed.`,
   ];
 
-  // ---------- JSX ----------
+  /* ---------- JSX ---------- */
+
   return (
     <div className="space-y-6">
       <Card>
@@ -668,7 +677,6 @@ Bridgeocean: Confirmed.`,
               <>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-4">
-                    {/* On-page preview still uses relative path */}
                     <img
                       src="/images/bridgeocean-logo.jpg"
                       crossOrigin="anonymous"
@@ -755,8 +763,8 @@ Bridgeocean: Confirmed.`,
                   </div>
                 </div>
 
-                {/* Terms/Notes in preview (dedup) */}
-                {(effectiveTerms || liveNotes) && (
+                {/* Preview uses effectiveTerms + your typed notes. */}
+                {(effectiveTerms || notesInput.trim()) && (
                   <>
                     <Separator />
                     <section className="rounded-md border bg-white p-4">
@@ -768,11 +776,11 @@ Bridgeocean: Confirmed.`,
                           </pre>
                         </>
                       )}
-                      {liveNotes && norm(liveNotes) !== norm(effectiveTerms) && (
+                      {notesInput.trim() && norm(notesInput) !== norm(effectiveTerms) && (
                         <>
                           <h4 className="mt-3 mb-1 text-sm font-semibold">Notes</h4>
                           <pre className="whitespace-pre-wrap text-[12px] leading-relaxed text-slate-700">
-{liveNotes}
+{notesInput.trim()}
                           </pre>
                         </>
                       )}
@@ -947,7 +955,7 @@ Payment: ${receiptData.paymentMethod}`;
               </div>
 
               <p className="mt-3 text-xs text-muted-foreground">
-                The section appears at the bottom of the invoice preview and is included in the downloaded HTML.
+                Included at the bottom of the invoice preview and in the downloaded HTML.
               </p>
             </section>
           </CardContent>
