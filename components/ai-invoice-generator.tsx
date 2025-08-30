@@ -47,6 +47,9 @@ Moniepoint Account details
 Moniepoint Account number: 8135261568
 Bridgeocean Limited`;
 
+// ---- helper to normalize text (for dedupe)
+const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
+
 export function AIInvoiceGenerator() {
   const [whatsappChat, setWhatsappChat] = useState("");
   const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null);
@@ -58,21 +61,23 @@ export function AIInvoiceGenerator() {
   const [includeVAT, setIncludeVAT] = useState(false);
   const { toast } = useToast();
 
-  // NEW: Notes/Terms inputs + auto-insert toggle (UI lives under preview)
+  // Notes/Terms inputs + auto-insert toggle
   const [notesInput, setNotesInput] = useState<string>("");
   const [termsInput, setTermsInput] = useState<string>("");
   const [autoInsertBank, setAutoInsertBank] = useState<boolean>(true);
 
-  // Effective terms text that will be shown/embedded
+  // Terms that will be shown/embedded
   const effectiveTerms = (autoInsertBank && !termsInput.trim())
     ? BRIDGEOCEAN_BANK_DETAILS
     : termsInput.trim();
 
-  // NEW: data URL of the logo for downloaded HTML
+  // Use typed notes if present; else fallback to extracted default
+  const liveNotes = (notesInput.trim() || invoiceData?.notes?.trim() || "");
+
+  // data URL of the logo for downloaded HTML
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    // Loads /public/images/bridgeocean-logo.jpg and converts to data URL
     const loadLogoAsDataURL = async (path: string) => {
       try {
         const res = await fetch(path, { cache: "force-cache" });
@@ -86,13 +91,13 @@ export function AIInvoiceGenerator() {
         });
         setLogoDataUrl(dataUrl);
       } catch {
-        // ignore: fallback is just no logo in downloaded HTML
+        /* ignore */
       }
     };
     loadLogoAsDataURL("/images/bridgeocean-logo.jpg");
   }, []);
 
-  // ----- tiny utility: save an .html file -----
+  // save .html file helper
   const downloadHTMLFile = (html: string, filename: string) => {
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -274,7 +279,7 @@ export function AIInvoiceGenerator() {
 
     const quantity = 1;
     const subtotal = finalRate * quantity;
-    const vat = includeVAT ? Math.round(subtotal * 0.075) : 0;
+    the const vat = includeVAT ? Math.round(subtotal * 0.075) : 0;
     const total = subtotal + vat;
     const balanceDue = total - (ex.amountPaid || 0);
 
@@ -327,11 +332,7 @@ export function AIInvoiceGenerator() {
       const data = await extractInvoiceDataWithAI(whatsappChat);
       setInvoiceData(data);
       setReceiptData(generateReceiptData(data)); // receipt mirrors invoice total
-
-      // Prefill Notes input if user hasn't typed anything yet
-      setNotesInput((prev) => prev || data.notes || "");
-      // Terms textarea stays as user types; auto-insert toggle will supply bank details if left empty
-
+      setNotesInput((prev) => prev || data.notes || ""); // Prefill notes once
       toast({ title: "Invoice & Receipt generated", description: "Hybrid extraction completed." });
     } catch (e) {
       toast({
@@ -342,12 +343,36 @@ export function AIInvoiceGenerator() {
     }
   };
 
-  // ---------- HTML builders (embed logoDataUrl when available) ----------
-  const buildInvoiceHTML = (inv: InvoiceData) => `<!DOCTYPE html>
+  // ---------- HTML builder (dedup Terms/Notes, escape content) ----------
+  const buildInvoiceHTML = (inv: InvoiceData) => {
+    const esc = (s: string) =>
+      (s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+    const termsText = (inv.terms || "").trim();
+    const notesText = (inv.notes || "").trim();
+
+    // Build unique blocks; if Notes equals Terms, only render once.
+    const blocks: Array<{ title: string; text: string }> = [];
+    if (termsText) blocks.push({ title: "Terms & Payment details", text: termsText });
+    if (notesText && norm(notesText) !== norm(termsText)) {
+      blocks.push({ title: "Notes", text: notesText });
+    }
+
+    const blocksHTML = blocks
+      .map(
+        (b) =>
+          `<h4>${esc(b.title)}</h4><pre style="white-space:pre-wrap;font-family:inherit;">${esc(b.text)}</pre>`
+      )
+      .join("\n");
+
+    return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Invoice ${inv.invoiceNumber}</title>
+  <title>Invoice ${esc(inv.invoiceNumber)}</title>
   <meta name="color-scheme" content="light only" />
   <style>
     body { font-family: Arial, sans-serif; margin: 40px; color: #111; background:#fff; }
@@ -373,7 +398,7 @@ export function AIInvoiceGenerator() {
   <div class="header">
     <div>
       <div class="invoice-title">INVOICE</div>
-      <div class="invoice-number">#${inv.invoiceNumber}</div>
+      <div class="invoice-number">#${esc(inv.invoiceNumber)}</div>
     </div>
     <div class="company-info">
       ${logoDataUrl ? `<img class="logo" src="${logoDataUrl}" alt="Bridgeocean Logo" />` : ``}
@@ -384,12 +409,12 @@ export function AIInvoiceGenerator() {
 
   <div class="bill-to">
     <h3>Bill To:</h3>
-    <p style="font-size: 18px;">${inv.customerName}</p>
+    <p style="font-size: 18px;">${esc(inv.customerName)}</p>
   </div>
 
   <div class="dates">
-    <div><strong>Service Date:</strong> ${inv.serviceDate}</div>
-    <div><strong>Due Date:</strong> ${inv.dueDate}</div>
+    <div><strong>Service Date:</strong> ${esc(inv.serviceDate)}</div>
+    <div><strong>Due Date:</strong> ${esc(inv.dueDate)}</div>
     <div><strong>Balance Due:</strong> ₦${inv.balanceDue.toLocaleString()}</div>
   </div>
 
@@ -399,7 +424,7 @@ export function AIInvoiceGenerator() {
     </thead>
     <tbody>
       <tr>
-        <td>${inv.vehicle} (${inv.duration})</td>
+        <td>${esc(inv.vehicle)} (${esc(inv.duration)})</td>
         <td>${inv.quantity}</td>
         <td>₦${inv.rate.toLocaleString()}</td>
         <td>₦${inv.subtotal.toLocaleString()}</td>
@@ -416,11 +441,11 @@ export function AIInvoiceGenerator() {
   </div>
 
   <div class="notes">
-    ${inv.terms ? `<h4>Terms &amp; Payment details</h4><pre>${inv.terms}</pre>` : ""}
-    ${inv.notes ? `<h4>Notes</h4><pre>${inv.notes}</pre>` : ""}
+    ${blocksHTML}
   </div>
 </body>
 </html>`;
+  };
 
   const buildReceiptHTML = (r: ReceiptData) => `<!DOCTYPE html>
 <html>
@@ -491,10 +516,10 @@ export function AIInvoiceGenerator() {
     try {
       setIsGeneratingInvoiceHTML(true);
 
-      // IMPORTANT: override notes/terms with the UI inputs BEFORE building HTML
+      // Use the same values the preview shows (dedup handled by builder)
       const html = buildInvoiceHTML({
         ...invoiceData,
-        notes: notesInput.trim(),
+        notes: liveNotes,
         terms: effectiveTerms,
       });
 
@@ -730,8 +755,8 @@ Bridgeocean: Confirmed.`,
                   </div>
                 </div>
 
-                {/* NEW: show the Terms/Notes inside the preview (bottom of invoice) */}
-                {(effectiveTerms || notesInput.trim()) && (
+                {/* Terms/Notes in preview (dedup) */}
+                {(effectiveTerms || liveNotes) && (
                   <>
                     <Separator />
                     <section className="rounded-md border bg-white p-4">
@@ -743,11 +768,11 @@ Bridgeocean: Confirmed.`,
                           </pre>
                         </>
                       )}
-                      {notesInput.trim() && (
+                      {liveNotes && norm(liveNotes) !== norm(effectiveTerms) && (
                         <>
                           <h4 className="mt-3 mb-1 text-sm font-semibold">Notes</h4>
                           <pre className="whitespace-pre-wrap text-[12px] leading-relaxed text-slate-700">
-{notesInput.trim()}
+{liveNotes}
                           </pre>
                         </>
                       )}
@@ -761,7 +786,6 @@ Bridgeocean: Confirmed.`,
               <>
                 <div className="max-w-md mx-auto bg-gray-50 p-6 border-2 border-gray-300 font-mono text-center">
                   <div className="flex flex-col items-center">
-                    {/* On-page preview still uses relative path */}
                     <img
                       src="/images/bridgeocean-logo.jpg"
                       crossOrigin="anonymous"
@@ -876,7 +900,7 @@ Payment: ${receiptData.paymentMethod}`;
               </Button>
             </div>
 
-            {/* NEW: Notes & Terms editor (the inputs you asked for). Sits under buttons. */}
+            {/* Notes & Terms editor */}
             <section className="rounded-lg border p-4 mt-4">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold">Notes &amp; Terms / Payment details</h3>
