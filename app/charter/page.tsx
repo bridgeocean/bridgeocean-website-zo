@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { Car, Users, Shield, Clock, MapPin, AlertTriangle, ArrowRight, Phone } from "lucide-react"
+import Image from "next/image"
+import { Users, Shield, Clock, CheckCircle2, Phone, Mail, AlertTriangle, Star } from "lucide-react"
 
 const vehicles = [
   {
@@ -15,6 +16,7 @@ const vehicles = [
     passengers: 5,
     color: "Black",
     fuel: "Petrol",
+    image: "https://app.bridgeocean.xyz/vehicles/gmc-terrain-2011.png",
     features: ["Nexus panic button", "GPS tracked", "Professional driver", "Fully insured"],
   },
   {
@@ -24,6 +26,7 @@ const vehicles = [
     passengers: 5,
     color: "Grey",
     fuel: "Petrol",
+    image: "https://app.bridgeocean.xyz/vehicles/honda-crosstour-2013.jpeg",
     features: ["Nexus panic button", "GPS tracked", "Professional driver", "Fully insured"],
   },
   {
@@ -33,6 +36,7 @@ const vehicles = [
     passengers: 7,
     color: "Black",
     fuel: "Petrol",
+    image: "https://app.bridgeocean.xyz/vehicles/toyota-prado-2023.jpeg",
     features: ["Nexus panic button", "GPS tracked", "Professional driver", "Luxury interior"],
   },
   {
@@ -42,6 +46,7 @@ const vehicles = [
     passengers: 7,
     color: "Black",
     fuel: "Petrol",
+    image: "https://app.bridgeocean.xyz/vehicles/lexus-gx460-2024.jpeg",
     features: ["Nexus panic button", "GPS tracked", "Professional driver", "Premium luxury"],
   },
   {
@@ -51,6 +56,7 @@ const vehicles = [
     passengers: 8,
     color: "Black",
     fuel: "Petrol",
+    image: "https://app.bridgeocean.xyz/vehicles/chevrolet-suburban-2024.jpeg",
     features: ["Nexus panic button", "GPS tracked", "Professional driver", "Maximum capacity"],
   },
   {
@@ -60,181 +66,177 @@ const vehicles = [
     passengers: 7,
     color: "Black",
     fuel: "Petrol",
+    image: "https://app.bridgeocean.xyz/vehicles/mercedes-glc-2023.jpeg",
     features: ["Nexus panic button", "GPS tracked", "Professional driver", "Executive class"],
   },
 ]
 
+const trustItems = [
+  { icon: Shield, title: "Nexus Panic Button", body: "Every vehicle has a hardware emergency button wired directly into the Nexus dispatch network." },
+  { icon: Clock, title: "24 / 7 Availability", body: "Round-the-clock charter with professional drivers — airport runs, corporate events, personal hires." },
+  { icon: Star, title: "Vetted Drivers", body: "All drivers are background-checked, trained, and familiar with Lagos routes and emergency protocols." },
+  { icon: AlertTriangle, title: "Emergency Ready", body: "If something happens on the road, Nexus dispatches ambulance and alerts the nearest hospital automatically." },
+]
+
 export default function CharterPage() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-black text-white">
       <MainNav />
       <main className="flex-1">
 
-        {/* Hero */}
-        <section className="w-full py-16 md:py-24 bg-black text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="container px-4 md:px-6 mx-auto relative z-10">
-            <div className="max-w-2xl space-y-5">
-              <Badge variant="outline" className="border-red-500 text-red-400">Nexus-Protected Fleet</Badge>
-              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl text-white">
-                Premium Charter Services
+        {/* ── Hero ── */}
+        <section className="relative w-full py-16 md:py-28 overflow-hidden">
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#ff000010_1px,transparent_1px),linear-gradient(to_bottom,#ff000010_1px,transparent_1px)] bg-[size:40px_40px]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black to-black" />
+          <div className="container relative px-4 md:px-6">
+            <div className="max-w-3xl space-y-6">
+              <Badge className="bg-red-600/20 border-red-600/40 text-red-400">Nexus-Protected Fleet</Badge>
+              <h1 className="text-4xl font-black tracking-tight sm:text-6xl xl:text-7xl leading-none">
+                Charter That
+                <span className="text-red-500"> Protects You</span>
               </h1>
-              <p className="text-zinc-400 md:text-lg leading-relaxed">
-                Every vehicle in our fleet is equipped with a Nexus emergency panic button — providing real-time emergency dispatch, GPS tracking, and 24/7 protection for every journey.
+              <p className="text-lg text-gray-300 max-w-2xl leading-relaxed">
+                Every Bridgeocean charter vehicle is equipped with a Nexus panic button — wired directly to emergency
+                dispatch. One press and help is on the way. Premium transport with life-safety built in.
               </p>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Link href="/charter/book">
+              <div className="flex flex-wrap gap-3 pt-2">
+                <a href="https://wa.me/2349111100110?text=Hi%2C%20I%27d%20like%20to%20book%20a%20charter%20vehicle" target="_blank" rel="noopener noreferrer">
                   <Button size="lg" className="bg-red-600 hover:bg-red-700 gap-2">
-                    <Car className="h-4 w-4" /> Book a Charter
+                    <Phone className="h-4 w-4" /> Book via WhatsApp
+                  </Button>
+                </a>
+                <Link href="/contact">
+                  <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                    Request a Quote
                   </Button>
                 </Link>
-                <Button size="lg" variant="outline"
-                  className="border-zinc-700 text-white hover:bg-zinc-900 hover:text-white bg-transparent gap-2"
-                  onClick={() => window.open("https://app.bridgeocean.xyz/corporate-app", "_blank")}>
-                  View Fleet App <ArrowRight className="h-4 w-4" />
-                </Button>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Nexus protection callout */}
-        <section className="w-full py-6 bg-red-600 text-white">
-          <div className="container px-4 md:px-6 mx-auto">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="h-6 w-6 flex-shrink-0" />
-                <p className="font-medium">Every charter vehicle has an active Nexus panic button — instant emergency dispatch at the press of a button.</p>
-              </div>
-              <Link href="/nexus">
-                <Button size="sm" variant="outline" className="border-white text-white hover:bg-red-700 bg-transparent whitespace-nowrap">
-                  About Nexus
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* Trust signals */}
-        <section className="w-full py-10 border-b">
-          <div className="container px-4 md:px-6 mx-auto">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-              {[
-                { icon: Shield, label: "Fully Insured", sub: "All vehicles & passengers" },
-                { icon: AlertTriangle, label: "Panic Button", sub: "Nexus emergency link" },
-                { icon: MapPin, label: "GPS Tracked", sub: "Real-time on every ride" },
-                { icon: Clock, label: "24/7 Available", sub: "Lagos & beyond" },
-              ].map(({ icon: Icon, label, sub }) => (
-                <div key={label} className="flex flex-col items-center gap-2">
-                  <div className="h-10 w-10 bg-red-100 dark:bg-red-950 rounded-lg flex items-center justify-center">
-                    <Icon className="h-5 w-5 text-red-600" />
+        {/* ── Trust bar ── */}
+        <section className="w-full py-12 bg-zinc-950 border-y border-white/5">
+          <div className="container px-4 md:px-6">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {trustItems.map((t) => (
+                <div key={t.title} className="flex items-start gap-3">
+                  <t.icon className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-white text-sm">{t.title}</p>
+                    <p className="text-xs text-gray-400 mt-1 leading-relaxed">{t.body}</p>
                   </div>
-                  <p className="font-semibold text-sm">{label}</p>
-                  <p className="text-xs text-muted-foreground">{sub}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Fleet Grid */}
-        <section className="w-full py-16 md:py-24">
+        {/* ── Fleet Grid ── */}
+        <section className="w-full py-16 md:py-24 bg-black">
           <div className="container px-4 md:px-6 mx-auto">
             <div className="flex flex-col items-center text-center space-y-3 mb-12">
-              <Badge variant="outline" className="border-red-500 text-red-500">Our Fleet</Badge>
+              <Badge className="bg-white/5 border-white/20 text-gray-300">Our Fleet</Badge>
               <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">Nexus-Enabled Vehicles</h2>
-              <p className="max-w-[600px] text-muted-foreground md:text-lg">
-                Premium SUVs and crossovers — every vehicle GPS-tracked, fully insured, and protected by Nexus emergency technology
+              <p className="max-w-[600px] text-gray-400 md:text-lg">
+                Premium SUVs and crossovers — GPS-tracked, fully insured, and every one protected by Nexus emergency technology
               </p>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
               {vehicles.map((v) => (
-                <Card key={`${v.name}-${v.year}`} className="overflow-hidden hover:shadow-md transition-shadow">
-                  {/* Vehicle visual placeholder with color + name */}
-                  <div className="h-44 bg-zinc-900 flex flex-col items-center justify-center relative">
-                    <div className="absolute top-3 left-3">
-                      <Badge className="bg-red-600 text-white text-xs">NEXUS</Badge>
+                <Card key={`${v.name}-${v.year}`} className="overflow-hidden bg-zinc-900 border-zinc-800 hover:border-zinc-600 transition-colors">
+                  {/* Vehicle image */}
+                  <div className="relative h-48 w-full bg-zinc-800">
+                    <Image
+                      src={v.image}
+                      alt={`${v.color} ${v.name} ${v.year}`}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                    {/* NEXUS badge overlay */}
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/80 border border-red-600/60 rounded-full px-2 py-1">
+                      <Image src="/nexus-logo.svg" alt="Nexus" width={14} height={14} />
+                      <span className="text-red-400 text-xs font-bold tracking-wider">NEXUS</span>
                     </div>
-                    <Car className="h-16 w-16 text-zinc-600" />
-                    <p className="text-zinc-500 text-xs mt-2">{v.color}</p>
+                    <div className="absolute top-3 right-3">
+                      <Badge className="bg-zinc-900/90 border-zinc-600 text-zinc-300 text-xs">{v.category}</Badge>
+                    </div>
                   </div>
+
                   <CardContent className="p-5 space-y-4">
                     <div className="flex items-start justify-between">
                       <div>
-                        <h3 className="font-bold text-lg leading-tight">{v.name}</h3>
-                        <p className="text-muted-foreground text-sm">{v.year}</p>
+                        <h3 className="font-bold text-lg text-white leading-tight">{v.name}</h3>
+                        <p className="text-zinc-500 text-sm">{v.year} · {v.color}</p>
                       </div>
-                      <Badge variant="outline" className="text-xs shrink-0">{v.category}</Badge>
+                      <div className="flex items-center gap-1 text-zinc-400 text-sm">
+                        <Users className="h-3.5 w-3.5" />
+                        <span>{v.passengers}</span>
+                      </div>
                     </div>
-                    <div className="flex gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {v.passengers} seats</span>
-                      <span className="flex items-center gap-1"><Car className="h-3.5 w-3.5" /> {v.fuel}</span>
-                    </div>
-                    <ul className="space-y-1">
+                    <ul className="space-y-1.5">
                       {v.features.map((f) => (
-                        <li key={f} className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span className="h-1.5 w-1.5 rounded-full bg-red-500 flex-shrink-0" />
+                        <li key={f} className="flex items-center gap-2 text-xs text-zinc-400">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
                           {f}
                         </li>
                       ))}
                     </ul>
-                    <Link href="/charter/book">
-                      <Button className="w-full bg-red-600 hover:bg-red-700 mt-2" size="sm">
-                        Book This Vehicle
+                    <a
+                      href={`https://wa.me/2349111100110?text=Hi%2C%20I%27d%20like%20to%20book%20the%20${encodeURIComponent(v.name + " " + v.year)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button className="w-full bg-red-600 hover:bg-red-700 text-white mt-1 gap-2">
+                        <Phone className="h-3.5 w-3.5" /> Book This Vehicle
                       </Button>
-                    </Link>
+                    </a>
                   </CardContent>
                 </Card>
               ))}
             </div>
-
-            <div className="flex justify-center mt-10">
-              <Button variant="outline" size="lg"
-                onClick={() => window.open("https://wa.me/2349135630154", "_blank")}>
-                View Full Fleet on WhatsApp
-              </Button>
-            </div>
           </div>
         </section>
 
-        {/* Book / Contact */}
-        <section className="w-full py-16 md:py-24 bg-muted">
-          <div className="container px-4 md:px-6 mx-auto">
-            <div className="max-w-2xl mx-auto text-center space-y-6">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">Ready to Book?</h2>
-              <p className="text-muted-foreground md:text-lg">
-                Get in touch to reserve a vehicle or register your car to join our Nexus-protected fleet.
+        {/* ── Book CTA ── */}
+        <section className="w-full py-16 bg-zinc-950 border-t border-white/5">
+          <div className="container px-4 md:px-6">
+            <div className="max-w-3xl mx-auto text-center space-y-5">
+              <h2 className="text-3xl font-bold sm:text-4xl">Ready to Book?</h2>
+              <p className="text-gray-400 md:text-lg">
+                Contact us via WhatsApp or email and our team will confirm your vehicle, driver, and schedule.
+                All vehicles available for airport transfers, corporate events, and personal hire.
               </p>
-              <div className="flex flex-col gap-3 sm:flex-row justify-center">
-                <Link href="/charter/book">
-                  <Button size="lg" className="bg-red-600 hover:bg-red-700 w-full sm:w-auto">
-                    Book a Charter
+              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                <a href="https://wa.me/2349111100110" target="_blank" rel="noopener noreferrer">
+                  <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white gap-2 w-full sm:w-auto">
+                    <Phone className="h-4 w-4" /> WhatsApp +2349111100110
                   </Button>
-                </Link>
-                <Link href="/charter/partner">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                    Register Your Vehicle
+                </a>
+                <Link href="/contact">
+                  <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 gap-2 w-full sm:w-auto">
+                    <Mail className="h-4 w-4" /> Send an Email
                   </Button>
                 </Link>
               </div>
-              <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
-                <Phone className="h-4 w-4" />
-                24/7 Hotline: <a href="tel:+2349069183165" className="font-medium hover:underline">+234 906 918 3165</a>
-              </p>
             </div>
           </div>
         </section>
+
       </main>
 
-      <footer className="border-t py-6 md:py-0 bg-zinc-950 text-zinc-400">
-        <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row mx-auto px-4">
-          <p className="text-sm">© 2025 Bridgeocean Limited. All rights reserved.</p>
-          <div className="flex gap-4 text-sm flex-wrap justify-center">
-            <a href="mailto:bridgeocean@bridgeocean.xyz" className="hover:text-white transition-colors">bridgeocean@bridgeocean.xyz</a>
-            <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
-            <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
-            <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
+      {/* Footer */}
+      <footer className="bg-black border-t border-white/10 py-8">
+        <div className="container px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Image src="/images/bridgeocean-logo.jpg" alt="Bridgeocean" width={32} height={32} className="rounded-full" />
+            <span className="text-sm text-gray-400">© 2026 Bridgeocean Limited. All rights reserved.</span>
+          </div>
+          <div className="text-sm text-gray-500 flex items-center gap-2">
+            <Mail className="h-3.5 w-3.5" />
+            <span>bridgeocean@bridgeocean.xyz</span>
           </div>
         </div>
       </footer>

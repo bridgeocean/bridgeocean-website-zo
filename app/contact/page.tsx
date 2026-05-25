@@ -73,7 +73,7 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-black text-white">
       <MainNav />
       <div className="flex-1 space-y-4 p-8 pt-6">
         <div className="flex items-center justify-between space-y-2">
@@ -82,7 +82,7 @@ export default function ContactPage() {
 
         {/* Success/Error Message */}
         {submitMessage && (
-          <div className="mb-6 p-4 rounded-lg bg-blue-50 border border-blue-200">
+          <div className="mb-6 p-4 rounded-lg bg-blue-950/40 border border-blue-600/40">
             <p className="text-sm">{submitMessage}</p>
           </div>
         )}
@@ -181,7 +181,7 @@ export default function ContactPage() {
                   <div>
                     <p className="font-medium">Phone Numbers</p>
                     <p className="text-sm text-muted-foreground">+234 913 563 0154 (WhatsApp only)</p>
-                    <p className="text-sm text-muted-foreground">+234 906 918 3165 (Mobile & WhatsApp)</p>
+                    <p className="text-sm text-muted-foreground">+2349111100110 (Mobile & WhatsApp)</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -263,7 +263,7 @@ export default function ContactPage() {
                     <span>Sunday</span>
                     <span>Emergency only</span>
                   </div>
-                  <div className="mt-4 p-3 bg-muted rounded-lg">
+                  <div className="mt-4 p-3 bg-zinc-900 rounded-lg">
                     <p className="text-sm text-muted-foreground">
                       <strong>24/7 WhatsApp Support:</strong> For urgent charter bookings and emergencies
                     </p>
@@ -274,6 +274,11 @@ export default function ContactPage() {
           </div>
         </div>
       </div>
+      <footer className="bg-black border-t border-white/10 py-6 mt-8">
+        <div className="container px-4 md:px-6 text-center">
+          <p className="text-sm text-gray-500">© 2026 Bridgeocean Limited. All rights reserved. · bridgeocean@bridgeocean.xyz</p>
+        </div>
+      </footer>
     </div>
   )
 }

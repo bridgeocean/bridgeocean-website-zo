@@ -117,7 +117,7 @@ export default function NaijaRescuePage() {
               <Link href="/contact">
                 <Button className="bg-red-600 hover:bg-red-700 text-white gap-2">
                   <Phone className="h-4 w-4" />
-                  Emergency: +234 906 918 3165
+                  Emergency: +2349111100110
                 </Button>
               </Link>
             </div>

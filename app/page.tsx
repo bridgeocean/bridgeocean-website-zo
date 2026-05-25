@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-black text-white">
       <MainNav />
       <main className="flex-1">
 
@@ -140,8 +140,8 @@ export default function Home() {
                   <Badge className="bg-red-600 text-white text-xs">Flagship</Badge>
                 </div>
                 <CardHeader className="pb-3">
-                  <div className="h-10 w-10 bg-red-100 dark:bg-red-950 rounded-lg flex items-center justify-center mb-2">
-                    <HeartPulse className="h-5 w-5 text-red-600" />
+                  <div className="h-10 w-10 rounded-lg flex items-center justify-center mb-2 bg-black border border-red-600/40">
+                    <Image src="/nexus-logo.svg" alt="Nexus" width={24} height={24} />
                   </div>
                   <CardTitle className="text-xl">Nexus Emergency Platform</CardTitle>
                   <CardDescription>
@@ -201,7 +201,7 @@ export default function Home() {
               {/* Charter */}
               <Card className="relative overflow-hidden">
                 <CardHeader className="pb-3">
-                  <div className="h-10 w-10 bg-emerald-100 dark:bg-emerald-950 rounded-lg flex items-center justify-center mb-2">
+                  <div className="h-10 w-10 bg-emerald-950/50 border border-emerald-600/30 rounded-lg flex items-center justify-center mb-2">
                     <Car className="h-5 w-5 text-emerald-600" />
                   </div>
                   <CardTitle className="text-xl">Charter Services</CardTitle>
@@ -232,7 +232,7 @@ export default function Home() {
         </section>
 
         {/* Who We Serve */}
-        <section className="w-full py-16 md:py-24 bg-muted">
+        <section className="w-full py-16 md:py-24 bg-zinc-950">
           <div className="container px-4 md:px-6 mx-auto">
             <div className="flex flex-col items-center justify-center space-y-3 text-center mb-12">
               <Badge variant="outline" className="border-red-500 text-red-500">Audiences</Badge>
@@ -247,7 +247,7 @@ export default function Home() {
                   icon: Building2,
                   title: "Hospitals & Clinics",
                   iconColor: "text-red-600",
-                  iconBg: "bg-red-100 dark:bg-red-950",
+                  iconBg: "bg-red-950/40 border border-red-800/40",
                   dotColor: "bg-red-500",
                   items: ["Real-time bed availability updates", "Incoming patient pre-alerts", "Ambulance coordination", "B2B partner dashboard access"],
                 },
@@ -255,7 +255,7 @@ export default function Home() {
                   icon: Users,
                   title: "The Public",
                   iconColor: "text-blue-600",
-                  iconBg: "bg-blue-100 dark:bg-blue-950",
+                  iconBg: "bg-blue-950/40 border border-blue-800/40",
                   dotColor: "bg-blue-500",
                   items: ["NaijaRescue SOS access", "One-tap emergency dispatch", "Nearest hospital routing", "Real-time responder tracking"],
                 },
@@ -263,7 +263,7 @@ export default function Home() {
                   icon: Briefcase,
                   title: "Corporate Clients",
                   iconColor: "text-emerald-600",
-                  iconBg: "bg-emerald-100 dark:bg-emerald-950",
+                  iconBg: "bg-emerald-950/40 border border-emerald-800/40",
                   dotColor: "bg-emerald-500",
                   items: ["Nexus-protected charter fleet", "Panic button on every vehicle", "VIP concierge transport", "24/7 emergency escalation"],
                 },
@@ -299,7 +299,7 @@ export default function Home() {
         </section>
 
         {/* Partner CTA */}
-        <section className="w-full py-16 md:py-24 lg:py-32">
+        <section className="w-full py-16 md:py-24 lg:py-32 bg-black">
           <div className="container px-4 md:px-6 mx-auto">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <Badge variant="outline" className="border-red-500 text-red-500">Get Involved</Badge>
@@ -328,7 +328,7 @@ export default function Home() {
         <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row mx-auto px-4">
           <div className="flex items-center gap-2">
             <Image src="/images/bridgeocean-logo.jpg" alt="Bridgeocean Logo" width={24} height={24} className="h-6 w-auto rounded-full" />
-            <p className="text-sm">© 2025 Bridgeocean Limited. All rights reserved.</p>
+            <p className="text-sm">© 2026 Bridgeocean Limited. All rights reserved.</p>
           </div>
           <div className="flex gap-4 text-sm flex-wrap justify-center">
             <a href="https://www.facebook.com/profile.php?id=61557691785062" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Facebook</a>

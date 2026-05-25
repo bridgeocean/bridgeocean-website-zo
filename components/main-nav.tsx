@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, ExternalLink } from "lucide-react"
-import { ModeToggle } from "@/components/mode-toggle"
 import Image from "next/image"
 
 const navigation = [
@@ -33,7 +32,7 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
             height={36}
             className="rounded-full"
           />
-          <span className="font-bold text-lg text-white">Bridgeocean</span>
+          
         </Link>
 
         {/* Desktop Navigation */}
@@ -95,7 +94,7 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
                     height={32}
                     className="rounded-full"
                   />
-                  <span className="font-bold text-xl text-white">Bridgeocean</span>
+                  
                 </Link>
                 {navigation.map((item) =>
                   item.external ? (
@@ -136,7 +135,6 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
             </SheetContent>
           </Sheet>
 
-          <ModeToggle />
         </div>
       </div>
     </div>
