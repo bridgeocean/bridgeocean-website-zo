@@ -7,8 +7,8 @@ import Image from "next/image"
 import Link from "next/link"
 import {
   Satellite, Shield, Clock, Navigation, MapPin,
-  Zap, HeartPulse, Landmark, Briefcase, Car,
-  Building2, Users, Phone, ArrowRight
+  Zap, HeartPulse, Briefcase, Car,
+  Building2, Users, Phone, ArrowRight, AlertTriangle
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -18,7 +18,7 @@ export default function Home() {
       <MainNav />
       <main className="flex-1">
 
-        {/* Hero — dark, tech-forward */}
+        {/* Hero */}
         <section className="w-full py-20 md:py-32 lg:py-40 bg-black text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-red-800/10 rounded-full blur-3xl pointer-events-none" />
@@ -48,11 +48,7 @@ export default function Home() {
                     Access Nexus Platform
                   </Button>
                   <Link href="/contact">
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="border-zinc-700 text-white hover:bg-zinc-900 hover:text-white w-full sm:w-auto bg-transparent"
-                    >
+                    <Button size="lg" variant="outline" className="border-zinc-700 text-white hover:bg-zinc-900 hover:text-white w-full sm:w-auto bg-transparent">
                       Partner With Us
                     </Button>
                   </Link>
@@ -90,7 +86,7 @@ export default function Home() {
                   <div className="pt-2 border-t border-zinc-800 space-y-2.5">
                     {[
                       { label: "NaijaRescue SOS", status: "Operational" },
-                      { label: "Corporate Dashboard", status: "B2B Access" },
+                      { label: "Panic Button (Charter)", status: "Active" },
                       { label: "Ambulance Network", status: "Live" },
                     ].map(({ label, status }) => (
                       <div key={label} className="flex justify-between items-center text-xs">
@@ -124,7 +120,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Products Section */}
+        {/* Products */}
         <section className="w-full py-16 md:py-24 lg:py-32">
           <div className="container px-4 md:px-6 mx-auto">
             <div className="flex flex-col items-center justify-center space-y-3 text-center mb-12">
@@ -133,7 +129,7 @@ export default function Home() {
                 Three Products, One Mission
               </h2>
               <p className="max-w-[700px] text-muted-foreground md:text-xl">
-                From emergency response coordination to corporate transport — built on the same satellite-powered infrastructure
+                Emergency response coordination, public SOS tooling, and protected premium transport — all on one infrastructure
               </p>
             </div>
             <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3">
@@ -149,7 +145,7 @@ export default function Home() {
                   </div>
                   <CardTitle className="text-xl">Nexus Emergency Platform</CardTitle>
                   <CardDescription>
-                    AI + satellite-powered emergency coordination. Real-time dispatch, hospital matching, and trauma routing for Nigeria.
+                    AI + satellite-powered emergency coordination. Real-time dispatch, hospital matching, and trauma routing. Our core IP.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -157,13 +153,11 @@ export default function Home() {
                     <div className="flex items-center gap-2"><Zap className="h-3.5 w-3.5 text-red-500 flex-shrink-0" /><span>AI intelligent dispatch</span></div>
                     <div className="flex items-center gap-2"><Navigation className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" /><span>Satellite-GPS routing engine</span></div>
                     <div className="flex items-center gap-2"><Building2 className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" /><span>Live hospital network</span></div>
-                    <div className="flex items-center gap-2"><Clock className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" /><span>24/7 emergency coordination</span></div>
+                    <div className="flex items-center gap-2"><AlertTriangle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" /><span>Panic button integration</span></div>
                   </div>
                   <div className="pt-2 space-y-2">
-                    <Button
-                      className="w-full bg-red-600 hover:bg-red-700"
-                      onClick={() => window.open("https://nexus.anytaskchill.com", "_blank")}
-                    >
+                    <Button className="w-full bg-red-600 hover:bg-red-700"
+                      onClick={() => window.open("https://nexus.anytaskchill.com", "_blank")}>
                       Access Nexus <ArrowRight className="h-4 w-4 ml-1" />
                     </Button>
                     <Link href="/nexus">
@@ -173,34 +167,32 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              {/* Corporate Dashboard */}
+              {/* NaijaRescue */}
               <Card className="relative overflow-hidden">
                 <CardHeader className="pb-3">
-                  <div className="h-10 w-10 bg-blue-100 dark:bg-blue-950 rounded-lg flex items-center justify-center mb-2">
-                    <Landmark className="h-5 w-5 text-blue-600" />
+                  <div className="h-10 w-10 rounded-lg flex items-center justify-center mb-2 overflow-hidden bg-black">
+                    <Image src="/naijarescue-logo.png" alt="NaijaRescue" width={40} height={40} className="object-contain" />
                   </div>
-                  <CardTitle className="text-xl">Corporate Dashboard</CardTitle>
+                  <CardTitle className="text-xl">NaijaRescue</CardTitle>
                   <CardDescription>
-                    Dedicated B2B partner portal for hospitals, government agencies, and corporate clients with full fleet visibility.
+                    Public-facing SOS emergency tool powered by Nexus. Connects Nigerians to real-time emergency dispatch and coordination.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-1.5 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2"><Shield className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" /><span>Hospital & govt B2B access</span></div>
-                    <div className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" /><span>Real-time fleet tracking</span></div>
-                    <div className="flex items-center gap-2"><Users className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" /><span>Employee transport portal</span></div>
-                    <div className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" /><span>Emergency panic button</span></div>
+                    <div className="flex items-center gap-2"><AlertTriangle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" /><span>One-tap SOS alert system</span></div>
+                    <div className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-red-500 flex-shrink-0" /><span>Live location dispatch</span></div>
+                    <div className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-red-500 flex-shrink-0" /><span>24/7 emergency coordination</span></div>
+                    <div className="flex items-center gap-2"><Users className="h-3.5 w-3.5 text-red-500 flex-shrink-0" /><span>Powered by Nexus platform</span></div>
                   </div>
                   <div className="pt-2 space-y-2">
-                    <Button
-                      variant="outline"
-                      className="w-full border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
-                      onClick={() => window.open("https://app.bridgeocean.xyz", "_blank")}
-                    >
-                      Access Dashboard <ArrowRight className="h-4 w-4 ml-1" />
-                    </Button>
-                    <Link href="/contact">
-                      <Button variant="ghost" className="w-full">Request B2B Access</Button>
+                    <Link href="/nexus/naijarescue">
+                      <Button variant="outline" className="w-full border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
+                        Open NaijaRescue <ArrowRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </Link>
+                    <Link href="/nexus">
+                      <Button variant="ghost" className="w-full">About the Platform</Button>
                     </Link>
                   </div>
                 </CardContent>
@@ -214,24 +206,23 @@ export default function Home() {
                   </div>
                   <CardTitle className="text-xl">Charter Services</CardTitle>
                   <CardDescription>
-                    Premium vehicle charter and intelligent fleet management — the logistics backbone behind our operational expertise.
+                    Premium protected vehicle charter. Every car is Nexus-enabled with an active panic button linked to emergency dispatch.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-1.5 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2"><Shield className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" /><span>Fully insured fleet</span></div>
+                    <div className="flex items-center gap-2"><Shield className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" /><span>Nexus panic button on every car</span></div>
                     <div className="flex items-center gap-2"><Clock className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" /><span>24/7 availability</span></div>
-                    <div className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" /><span>GPS-tracked vehicles</span></div>
+                    <div className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" /><span>GPS-tracked premium fleet</span></div>
                     <div className="flex items-center gap-2"><Briefcase className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" /><span>Corporate & personal hire</span></div>
                   </div>
                   <div className="pt-2 space-y-2">
+                    <Button variant="outline" className="w-full border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+                      onClick={() => window.open("https://app.bridgeocean.xyz/corporate-app", "_blank")}>
+                      View Fleet <ArrowRight className="h-4 w-4 ml-1" />
+                    </Button>
                     <Link href="/charter/book">
-                      <Button variant="outline" className="w-full border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950">
-                        Book Charter <ArrowRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    </Link>
-                    <Link href="/charter">
-                      <Button variant="ghost" className="w-full">View Fleet</Button>
+                      <Button variant="ghost" className="w-full">Book a Charter</Button>
                     </Link>
                   </div>
                 </CardContent>
@@ -258,25 +249,15 @@ export default function Home() {
                   iconColor: "text-red-600",
                   iconBg: "bg-red-100 dark:bg-red-950",
                   dotColor: "bg-red-500",
-                  items: [
-                    "Real-time bed availability updates",
-                    "Incoming patient pre-alerts",
-                    "Ambulance coordination",
-                    "B2B partner dashboard access",
-                  ],
+                  items: ["Real-time bed availability updates", "Incoming patient pre-alerts", "Ambulance coordination", "B2B partner dashboard access"],
                 },
                 {
-                  icon: Landmark,
-                  title: "Government Agencies",
+                  icon: Users,
+                  title: "The Public",
                   iconColor: "text-blue-600",
                   iconBg: "bg-blue-100 dark:bg-blue-950",
                   dotColor: "bg-blue-500",
-                  items: [
-                    "Emergency response data & reporting",
-                    "Fleet and resource visibility",
-                    "Coordination with FRSC & NEMA",
-                    "Population health impact metrics",
-                  ],
+                  items: ["NaijaRescue SOS access", "One-tap emergency dispatch", "Nearest hospital routing", "Real-time responder tracking"],
                 },
                 {
                   icon: Briefcase,
@@ -284,12 +265,7 @@ export default function Home() {
                   iconColor: "text-emerald-600",
                   iconBg: "bg-emerald-100 dark:bg-emerald-950",
                   dotColor: "bg-emerald-500",
-                  items: [
-                    "Employee transport management",
-                    "Emergency panic button access",
-                    "VIP concierge charter services",
-                    "Charter fleet booking portal",
-                  ],
+                  items: ["Nexus-protected charter fleet", "Panic button on every vehicle", "VIP concierge transport", "24/7 emergency escalation"],
                 },
               ].map(({ icon: Icon, title, iconColor, iconBg, dotColor, items }) => (
                 <Card key={title} className="border shadow-sm">
@@ -322,75 +298,25 @@ export default function Home() {
           </div>
         </section>
 
-        {/* NaijaRescue Live Section */}
-        <section className="w-full py-16 md:py-24 bg-black text-white">
-          <div className="container px-4 md:px-6 mx-auto">
-            <div className="max-w-3xl mx-auto text-center space-y-6">
-              <div className="flex items-center justify-center gap-3">
-                <Image
-                  src="/naijarescue-logo.png"
-                  alt="NaijaRescue"
-                  width={40}
-                  height={40}
-                  className="rounded"
-                />
-                <Badge variant="outline" className="border-red-500 text-red-400">Live Platform</Badge>
-              </div>
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">
-                NaijaRescue is live — an SOS project by Bridgeocean
-              </h2>
-              <p className="text-zinc-400 md:text-lg leading-relaxed">
-                NaijaRescue is our first public-facing emergency coordination tool, powered by the Nexus platform.
-                Real-time dispatch dashboard. Active in Lagos and expanding across Nigeria.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Link href="/nexus/naijarescue">
-                  <Button size="lg" className="bg-red-600 hover:bg-red-700 w-full sm:w-auto">
-                    Open NaijaRescue Dashboard
-                  </Button>
-                </Link>
-                <Link href="/nexus">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="border-zinc-700 text-white hover:bg-zinc-900 hover:text-white w-full sm:w-auto bg-transparent"
-                  >
-                    About Nexus Platform
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* Partner CTA */}
         <section className="w-full py-16 md:py-24 lg:py-32">
           <div className="container px-4 md:px-6 mx-auto">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <Badge variant="outline" className="border-red-500 text-red-500">Get Involved</Badge>
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                Partner With Bridgeocean
-              </h2>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Partner With Bridgeocean</h2>
               <p className="max-w-[700px] text-muted-foreground md:text-xl">
                 Whether you&apos;re a hospital, government body, corporate entity, or vehicle owner — there&apos;s a partnership pathway for you
               </p>
               <div className="flex flex-col gap-3 sm:flex-row flex-wrap justify-center">
-                <Button
-                  size="lg"
-                  className="bg-red-600 hover:bg-red-700"
-                  onClick={() => window.open("https://app.bridgeocean.xyz", "_blank")}
-                >
+                <Button size="lg" className="bg-red-600 hover:bg-red-700"
+                  onClick={() => window.open("https://app.bridgeocean.xyz", "_blank")}>
                   Emergency Logistics Partnership
                 </Button>
                 <Link href="/charter/partner">
-                  <Button size="lg" variant="outline">
-                    Register Your Vehicle
-                  </Button>
+                  <Button size="lg" variant="outline">Register Your Vehicle</Button>
                 </Link>
                 <Link href="/contact">
-                  <Button size="lg" variant="ghost">
-                    Contact Us
-                  </Button>
+                  <Button size="lg" variant="ghost">Contact Us</Button>
                 </Link>
               </div>
             </div>
@@ -401,18 +327,13 @@ export default function Home() {
       <footer className="border-t py-6 md:py-0 bg-zinc-950 text-zinc-400">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row mx-auto px-4">
           <div className="flex items-center gap-2">
-            <Image
-              src="/images/bridgeocean-logo.jpg"
-              alt="Bridgeocean Logo"
-              width={24}
-              height={24}
-              className="h-6 w-auto rounded-full"
-            />
+            <Image src="/images/bridgeocean-logo.jpg" alt="Bridgeocean Logo" width={24} height={24} className="h-6 w-auto rounded-full" />
             <p className="text-sm">© 2025 Bridgeocean Limited. All rights reserved.</p>
           </div>
           <div className="flex gap-4 text-sm flex-wrap justify-center">
             <a href="https://www.facebook.com/profile.php?id=61557691785062" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Facebook</a>
             <a href="https://www.instagram.com/bridgeoceanlimited/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Instagram</a>
+            <a href="mailto:bridgeocean@bridgeocean.xyz" className="hover:text-white transition-colors">bridgeocean@bridgeocean.xyz</a>
             <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
             <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
