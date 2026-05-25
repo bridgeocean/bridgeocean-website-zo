@@ -342,7 +342,7 @@ export default function AboutPage() {
         <div className="container px-4 md:px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <Image src="/images/bridgeocean-logo.jpg" alt="Bridgeocean" width={32} height={32} className="rounded-full" />
+              <Image src="/images/logo.png" alt="Bridgeocean" width={32} height={32} className="rounded-full invert brightness-110" />
               <span className="text-sm text-gray-400">© 2026 Bridgeocean Limited. All rights reserved.</span>
             </div>
             <div className="flex items-center gap-4 text-sm text-gray-500">

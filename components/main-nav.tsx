@@ -26,11 +26,11 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
       <div className="flex h-16 items-center px-4 container mx-auto">
         <Link href="/" className="flex items-center space-x-2">
           <Image
-            src="/images/bridgeocean-logo.jpg"
+            src="/images/logo.png"
             alt="Bridgeocean"
             width={36}
             height={36}
-            className="rounded-full mix-blend-screen"
+            className="rounded-full invert brightness-110"
           />
           
         </Link>
@@ -88,11 +88,11 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
               <div className="flex flex-col space-y-2 mt-6">
                 <Link href="/" className="flex items-center space-x-2 mb-6">
                   <Image
-                    src="/images/bridgeocean-logo.jpg"
+                    src="/images/logo.png"
                     alt="Bridgeocean"
                     width={32}
                     height={32}
-                    className="rounded-full mix-blend-screen"
+                    className="rounded-full invert brightness-110"
                   />
                   
                 </Link>
