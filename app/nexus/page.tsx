@@ -483,7 +483,7 @@ export default function NexusPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4" />
-                  <span>+2349111100110</span>
+                  <span>+234 913 563 0154</span>
                 </div>
               </div>
             </div>

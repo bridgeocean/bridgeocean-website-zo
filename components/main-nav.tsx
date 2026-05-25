@@ -30,7 +30,7 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
             alt="Bridgeocean"
             width={36}
             height={36}
-            className="rounded-full"
+            className="rounded-full mix-blend-screen"
           />
           
         </Link>
@@ -92,7 +92,7 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
                     alt="Bridgeocean"
                     width={32}
                     height={32}
-                    className="rounded-full"
+                    className="rounded-full mix-blend-screen"
                   />
                   
                 </Link>

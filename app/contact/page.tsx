@@ -181,7 +181,8 @@ export default function ContactPage() {
                   <div>
                     <p className="font-medium">Phone Numbers</p>
                     <p className="text-sm text-muted-foreground">+234 913 563 0154 (WhatsApp only)</p>
-                    <p className="text-sm text-muted-foreground">+2349111100110 (Mobile & WhatsApp)</p>
+                    <p className="text-sm text-muted-foreground">+234 906 918 3165 (Mobile & WhatsApp)</p>
+                    <p className="text-sm text-muted-foreground">+2348135261568 (calls only)</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
