@@ -300,7 +300,7 @@ export default function AboutPage() {
                       ))}
                     </ul>
                     <Link href={op.link}>
-                      <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10 mt-2">
+                      <Button variant="outline" className="w-full bg-transparent border-white/20 text-white hover:bg-white/10 mt-2">
                         {op.cta}
                       </Button>
                     </Link>
