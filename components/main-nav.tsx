@@ -26,10 +26,10 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
       <div className="flex h-16 items-center px-4 container mx-auto">
         <Link href="/" className="flex items-center space-x-2">
           <Image
-            src="/images/bridgeocean-logo.svg"
+            src="/images/logo.png"
             alt="Bridgeocean"
-            width={160}
-            height={40}
+            width={200}
+            height={136}
             className="h-9 w-auto"
           />
         </Link>
@@ -87,10 +87,10 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
               <div className="flex flex-col space-y-2 mt-6">
                 <Link href="/" className="flex items-center space-x-2 mb-6">
                   <Image
-                    src="/images/bridgeocean-logo.svg"
+                    src="/images/logo.png"
                     alt="Bridgeocean"
-                    width={160}
-                    height={40}
+                    width={200}
+                    height={136}
                     className="h-9 w-auto"
                   />
                 </Link>

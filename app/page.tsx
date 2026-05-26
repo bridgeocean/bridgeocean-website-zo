@@ -360,7 +360,7 @@ export default function Home() {
       <footer className="border-t py-6 md:py-0 bg-zinc-950 text-zinc-400 border-zinc-800">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row mx-auto px-4">
           <div className="flex items-center gap-2">
-            <Image src="/images/bridgeocean-logo.svg" alt="Bridgeocean" width={160} height={40} className="h-8 w-auto" />
+            <Image src="/images/logo.png" alt="Bridgeocean" width={200} height={136} className="h-8 w-auto" />
             <p className="text-sm">© 2026 Bridgeocean Limited. All rights reserved.</p>
           </div>
           <div className="flex gap-4 text-sm flex-wrap justify-center">

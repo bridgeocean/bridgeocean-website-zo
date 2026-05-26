@@ -231,7 +231,7 @@ export default function CharterPage() {
       <footer className="bg-black border-t border-white/10 py-8">
         <div className="container px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Image src="/images/bridgeocean-logo.svg" alt="Bridgeocean" width={160} height={40} className="h-8 w-auto" />
+            <Image src="/images/logo.png" alt="Bridgeocean" width={200} height={136} className="h-8 w-auto" />
             <span className="text-sm text-gray-400">© 2026 Bridgeocean Limited. All rights reserved.</span>
           </div>
           <div className="text-sm text-gray-500 flex items-center gap-2">
