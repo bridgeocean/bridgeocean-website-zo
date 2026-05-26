@@ -137,7 +137,7 @@ export default function AboutPage() {
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4 backdrop-blur">
                 <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold mb-4">Company at a Glance</p>
                 {[
-                  { label: "Headquarters", value: "Lagos, Nigeria", icon: MapPin },
+                  { label: "Address", value: "Block S3, Lekki Gardens Phase 5, Ajah 106104, Lagos", icon: MapPin },
                   { label: "Industry", value: "Emergency Response Technology", icon: Shield },
                   { label: "Flagship Platform", value: "Nexus Emergency Platform", icon: Satellite },
                   { label: "Public Product", value: "NaijaRescue SOS Tool", icon: Activity },

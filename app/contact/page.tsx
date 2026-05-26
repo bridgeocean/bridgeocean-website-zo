@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Phone, Mail, MessageCircle, Instagram, Facebook } from "lucide-react"
+import { Phone, Mail, MessageCircle, Instagram, Facebook, MapPin } from "lucide-react"
 
 export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -176,6 +176,14 @@ export default function ContactPage() {
                 <CardDescription>Reach out to us through any of these channels</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <MapPin className="h-5 w-5 text-primary mt-0.5" />
+                  <div>
+                    <p className="font-medium">Office Address</p>
+                    <p className="text-sm text-muted-foreground">Block S3, Lekki Gardens Phase 5 Estate</p>
+                    <p className="text-sm text-muted-foreground">Ajah, 106104, Lagos, Nigeria</p>
+                  </div>
+                </div>
                 <div className="flex items-center space-x-3">
                   <Phone className="h-5 w-5 text-primary" />
                   <div>
