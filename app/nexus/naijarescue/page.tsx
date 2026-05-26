@@ -215,7 +215,7 @@ export default function NaijaRescuePage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/nexus">
-                <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                <Button variant="outline" className="bg-transparent border-white/20 text-white hover:bg-white/10">
                   Learn About Nexus
                 </Button>
               </Link>

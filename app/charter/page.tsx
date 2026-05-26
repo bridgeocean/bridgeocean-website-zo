@@ -106,7 +106,7 @@ export default function CharterPage() {
                   </Button>
                 </a>
                 <Link href="/contact">
-                  <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                  <Button size="lg" variant="outline" className="bg-transparent border-white/20 text-white hover:bg-white/10">
                     Request a Quote
                   </Button>
                 </Link>
@@ -216,7 +216,7 @@ export default function CharterPage() {
                   </Button>
                 </a>
                 <Link href="/contact">
-                  <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 gap-2 w-full sm:w-auto">
+                  <Button size="lg" variant="outline" className="bg-transparent border-white/20 text-white hover:bg-white/10 gap-2 w-full sm:w-auto">
                     <Mail className="h-4 w-4" /> Send an Email
                   </Button>
                 </Link>

@@ -87,7 +87,7 @@ export default function NexusPage() {
                     </Button>
                   </Link>
                   <Link href="/contact">
-                    <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 gap-2">
+                    <Button size="lg" variant="outline" className="bg-transparent border-white/20 text-white hover:bg-white/10 gap-2">
                       Partner With Us
                     </Button>
                   </Link>
@@ -470,7 +470,7 @@ export default function NexusPage() {
                   </Button>
                 </Link>
                 <Link href="/nexus/naijarescue">
-                  <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 w-full sm:w-auto gap-2">
+                  <Button size="lg" variant="outline" className="bg-transparent border-white/20 text-white hover:bg-white/10 w-full sm:w-auto gap-2">
                     <Activity className="h-4 w-4" />
                     View Live NaijaRescue Data
                   </Button>

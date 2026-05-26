@@ -126,7 +126,7 @@ export default function AboutPage() {
                     </Button>
                   </Link>
                   <Link href="/contact">
-                    <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 gap-2">
+                    <Button variant="outline" className="bg-transparent border-white/20 text-white hover:bg-white/10 gap-2">
                       Partner With Us <ArrowRight className="h-4 w-4" />
                     </Button>
                   </Link>
@@ -326,7 +326,7 @@ export default function AboutPage() {
                 </Button>
               </Link>
               <a href="https://wa.me/2349069183165" target="_blank" rel="noopener noreferrer">
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 w-full sm:w-auto gap-2">
+                <Button size="lg" variant="outline" className="bg-transparent border-white text-white hover:bg-white/10 w-full sm:w-auto gap-2">
                   <Phone className="h-4 w-4" /> WhatsApp +234 913 563 0154
                 </Button>
               </a>

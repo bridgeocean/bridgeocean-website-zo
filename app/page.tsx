@@ -48,7 +48,7 @@ export default function Home() {
                     Access Nexus Platform
                   </Button>
                   <Link href="/contact">
-                    <Button size="lg" variant="outline" className="border-zinc-700 text-white hover:bg-zinc-900 hover:text-white w-full sm:w-auto bg-transparent">
+                    <Button size="lg" variant="outline" className="bg-transparent border-zinc-700 text-white hover:bg-zinc-900 hover:text-white w-full sm:w-auto">
                       Get a Proposal
                     </Button>
                   </Link>
@@ -161,7 +161,7 @@ export default function Home() {
                       Access Nexus <ArrowRight className="h-4 w-4 ml-1" />
                     </Button>
                     <Link href="/nexus">
-                      <Button variant="outline" className="w-full border-zinc-700 text-white hover:bg-zinc-900">Learn More</Button>
+                      <Button variant="outline" className="bg-transparent w-full border-zinc-700 text-white hover:bg-zinc-900">Learn More</Button>
                     </Link>
                   </div>
                 </CardContent>
@@ -320,7 +320,7 @@ export default function Home() {
                   Request a Proposal <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="border-zinc-700 text-white hover:bg-zinc-900"
+              <Button size="lg" variant="outline" className="bg-transparent border-zinc-700 text-white hover:bg-zinc-900"
                 onClick={() => window.open("https://app.bridgeocean.xyz/live-demo", "_blank")}>
                 See Nexus Live Demo
               </Button>
@@ -343,7 +343,7 @@ export default function Home() {
                   Access Nexus Live Demo
                 </Button>
                 <Link href="/contact">
-                  <Button size="lg" variant="outline" className="border-zinc-700 text-white hover:bg-zinc-900">
+                  <Button size="lg" variant="outline" className="bg-transparent border-zinc-700 text-white hover:bg-zinc-900">
                     Talk to Our Team
                   </Button>
                 </Link>
