@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" fill="none">
+  <!-- Siren on top -->
+  <rect x="38" y="2" width="24" height="10" rx="4" fill="#DC2626"/>
+  <rect x="44" y="0" width="12" height="5" rx="2" fill="#DC2626"/>
+  <!-- Siren light rays -->
+  <line x1="32" y1="5" x2="26" y2="2" stroke="#DC2626" stroke-width="2" stroke-linecap="round"/>
+  <line x1="68" y1="5" x2="74" y2="2" stroke="#DC2626" stroke-width="2" stroke-linecap="round"/>
+  <line x1="50" y1="2" x2="50" y2="0" stroke="#DC2626" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Shield body -->
+  <path d="M50 14 L88 26 L88 62 C88 82 70 100 50 108 C30 100 12 82 12 62 L12 26 Z" fill="#0a0a0a"/>
+  <!-- Shield border -->
+  <path d="M50 14 L88 26 L88 62 C88 82 70 100 50 108 C30 100 12 82 12 62 L12 26 Z" stroke="#DC2626" stroke-width="3.5" fill="none"/>
+  <!-- Inner shield border -->
+  <path d="M50 20 L82 30 L82 62 C82 78 66 94 50 101 C34 94 18 78 18 62 L18 30 Z" stroke="#DC2626" stroke-width="1" stroke-opacity="0.4" fill="none"/>
+
+  <!-- Medical cross -->
+  <rect x="43" y="44" width="14" height="38" rx="3" fill="#DC2626"/>
+  <rect x="31" y="56" width="38" height="14" rx="3" fill="#DC2626"/>
+
+  <!-- NEXUS text -->
+  <text x="50" y="116" text-anchor="middle" font-family="'Arial Black', 'Arial', sans-serif" font-size="10" font-weight="900" letter-spacing="3" fill="#DC2626">NEXUS</text>
+</svg>

@@ -1,68 +1,113 @@
+"use client"
+
 import { MainNav } from "@/components/main-nav"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import Image from "next/image"
 import Link from "next/link"
-import { Car, Users, Shield, Clock, Star, Calendar } from "lucide-react"
+import Image from "next/image"
+import { Users, Shield, Clock, CheckCircle2, Phone, Mail, AlertTriangle, Star } from "lucide-react"
 
 const vehicles = [
   {
-    id: 1,
-    name: "Toyota Camry",
-    year: "2006",
-    category: "Sedan",
-    passengers: 4,
-    price: "₦100,000 per 10 hours",
-    image: "/images/camry-final.jpg",
-    features: ["Leather Interior", "Air Conditioning", "Fuel Efficient", "Professional Driver"],
-    available: true,
-    note: "*Within Lagos. Additional charges apply outside Lagos.",
-    included: "Driver & full tank petrol included.",
-  },
-  {
-    id: 2,
     name: "GMC Terrain",
     year: "2011",
-    category: "SUV",
+    category: "Compact SUV",
     passengers: 5,
-    price: "₦200,000 per 10 hours",
-    image: "/images/gmc-final.jpg",
-    features: ["Spacious Interior", "Entertainment System", "Comfortable Ride", "Professional Driver"],
-    available: true,
-    note: "*Within Lagos. Additional charges apply outside Lagos.",
-    included: "Driver & full tank petrol included.",
+    color: "Black",
+    fuel: "Petrol",
+    image: "https://app.bridgeocean.xyz/vehicles/gmc-terrain-2011.png",
+    features: ["Nexus panic button", "GPS tracked", "Professional driver", "Fully insured"],
   },
+  {
+    name: "Honda Cross Tour",
+    year: "2013",
+    category: "Crossover",
+    passengers: 5,
+    color: "Grey",
+    fuel: "Petrol",
+    image: "https://app.bridgeocean.xyz/vehicles/honda-crosstour-2013.jpeg",
+    features: ["Nexus panic button", "GPS tracked", "Professional driver", "Fully insured"],
+  },
+  {
+    name: "Toyota Prado",
+    year: "2023",
+    category: "Premium SUV",
+    passengers: 7,
+    color: "Black",
+    fuel: "Petrol",
+    image: "https://app.bridgeocean.xyz/vehicles/toyota-prado-2023.jpeg",
+    features: ["Nexus panic button", "GPS tracked", "Professional driver", "Luxury interior"],
+  },
+  {
+    name: "Lexus GX 460",
+    year: "2024",
+    category: "Luxury SUV",
+    passengers: 7,
+    color: "Black",
+    fuel: "Petrol",
+    image: "https://app.bridgeocean.xyz/vehicles/lexus-gx460-2024.jpeg",
+    features: ["Nexus panic button", "GPS tracked", "Professional driver", "Premium luxury"],
+  },
+  {
+    name: "Chevrolet Suburban",
+    year: "2024",
+    category: "Full-Size SUV",
+    passengers: 8,
+    color: "Black",
+    fuel: "Petrol",
+    image: "https://app.bridgeocean.xyz/vehicles/chevrolet-suburban-2024.jpeg",
+    features: ["Nexus panic button", "GPS tracked", "Professional driver", "Maximum capacity"],
+  },
+  {
+    name: "Mercedes-Benz GLC",
+    year: "2023",
+    category: "Luxury SUV",
+    passengers: 7,
+    color: "Black",
+    fuel: "Petrol",
+    image: "https://app.bridgeocean.xyz/vehicles/mercedes-glc-2023.jpeg",
+    features: ["Nexus panic button", "GPS tracked", "Professional driver", "Executive class"],
+  },
+]
+
+const trustItems = [
+  { icon: Shield, title: "Nexus Panic Button", body: "Every vehicle has a hardware emergency button wired directly into the Nexus dispatch network." },
+  { icon: Clock, title: "24 / 7 Availability", body: "Round-the-clock charter with professional drivers — airport runs, corporate events, personal hires." },
+  { icon: Star, title: "Vetted Drivers", body: "All drivers are background-checked, trained, and familiar with Lagos routes and emergency protocols." },
+  { icon: AlertTriangle, title: "Emergency Ready", body: "If something happens on the road, Nexus dispatches ambulance and alerts the nearest hospital automatically." },
 ]
 
 export default function CharterPage() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-black text-white">
       <MainNav />
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-r from-primary/10 to-primary/5">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none">
-                  Premium Charter Services
-                </h1>
-                <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">
-                  Experience luxury transportation with our premium fleet of vehicles and professional drivers
-                </p>
-              </div>
-              <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                <Link href="/charter/book">
-                  <Button size="lg" className="gap-1.5">
-                    <Calendar className="h-4 w-4" />
-                    Book Now
+
+        {/* ── Hero ── */}
+        <section className="relative w-full py-16 md:py-28 overflow-hidden">
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#ff000010_1px,transparent_1px),linear-gradient(to_bottom,#ff000010_1px,transparent_1px)] bg-[size:40px_40px]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black to-black" />
+          <div className="container relative px-4 md:px-6">
+            <div className="max-w-3xl space-y-6">
+              <Badge className="bg-red-600/20 border-red-600/40 text-red-400">Nexus-Protected Fleet</Badge>
+              <h1 className="text-4xl font-black tracking-tight sm:text-6xl xl:text-7xl leading-none">
+                Charter That
+                <span className="text-red-500"> Protects You</span>
+              </h1>
+              <p className="text-lg text-gray-300 max-w-2xl leading-relaxed">
+                Every Bridgeocean charter vehicle is equipped with a Nexus panic button — wired directly to emergency
+                dispatch. One press and help is on the way. Premium transport with life-safety built in.
+              </p>
+              <div className="flex flex-wrap gap-3 pt-2">
+                <a href="https://wa.me/2347034392197?text=Hi%2C%20I%27d%20like%20to%20book%20a%20charter%20vehicle" target="_blank" rel="noopener noreferrer">
+                  <Button size="lg" className="bg-red-600 hover:bg-red-700 gap-2">
+                    <Phone className="h-4 w-4" /> Book via WhatsApp
                   </Button>
-                </Link>
-                <Link href="/charter/partner">
-                  <Button size="lg" variant="outline">
-                    <Car className="h-4 w-4 mr-2" />
-                    Partner With Us
+                </a>
+                <Link href="/contact">
+                  <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                    Request a Quote
                   </Button>
                 </Link>
               </div>
@@ -70,102 +115,84 @@ export default function CharterPage() {
           </div>
         </section>
 
-        {/* Services Overview */}
-        <section className="w-full py-12 md:py-24 lg:py-32">
+        {/* ── Trust bar ── */}
+        <section className="w-full py-12 bg-zinc-950 border-y border-white/5">
           <div className="container px-4 md:px-6">
-            <div className="grid gap-6 lg:grid-cols-3">
-              <Card>
-                <CardHeader>
-                  <Shield className="h-12 w-12 text-primary mb-4" />
-                  <CardTitle>Fully Insured</CardTitle>
-                  <CardDescription>All our vehicles are comprehensively insured for your peace of mind</CardDescription>
-                </CardHeader>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <Clock className="h-12 w-12 text-primary mb-4" />
-                  <CardTitle>24/7 Availability</CardTitle>
-                  <CardDescription>Round-the-clock service for all your transportation needs</CardDescription>
-                </CardHeader>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <Users className="h-12 w-12 text-primary mb-4" />
-                  <CardTitle>Professional Drivers</CardTitle>
-                  <CardDescription>Experienced, licensed, and courteous professional drivers</CardDescription>
-                </CardHeader>
-              </Card>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {trustItems.map((t) => (
+                <div key={t.title} className="flex items-start gap-3">
+                  <t.icon className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-white text-sm">{t.title}</p>
+                    <p className="text-xs text-gray-400 mt-1 leading-relaxed">{t.body}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* Fleet Section */}
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-muted">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Selected Premium Fleet</h2>
-              <p className="max-w-[900px] text-muted-foreground md:text-xl">
-                Choose from our carefully curated selection of luxury vehicles
+        {/* ── Fleet Grid ── */}
+        <section className="w-full py-16 md:py-24 bg-black">
+          <div className="container px-4 md:px-6 mx-auto">
+            <div className="flex flex-col items-center text-center space-y-3 mb-12">
+              <Badge className="bg-white/5 border-white/20 text-gray-300">Our Fleet</Badge>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">Nexus-Enabled Vehicles</h2>
+              <p className="max-w-[600px] text-gray-400 md:text-lg">
+                Premium SUVs and crossovers — GPS-tracked, fully insured, and every one protected by Nexus emergency technology
               </p>
             </div>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
-              {vehicles.map((vehicle) => (
-                <Card key={vehicle.id} className="overflow-hidden">
-                  <div className="relative h-48">
+
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
+              {vehicles.map((v) => (
+                <Card key={`${v.name}-${v.year}`} className="overflow-hidden bg-zinc-900 border-zinc-800 hover:border-zinc-600 transition-colors">
+                  {/* Vehicle image */}
+                  <div className="relative h-48 w-full bg-zinc-800">
                     <Image
-                      src={vehicle.image || "/placeholder.svg"}
-                      alt={vehicle.name}
+                      src={v.image}
+                      alt={`${v.color} ${v.name} ${v.year}`}
                       fill
-                      className="object-contain bg-background"
+                      className="object-cover"
+                      unoptimized
                     />
-                    <div className="absolute top-4 right-4">
-                      <Badge variant={vehicle.available ? "default" : "secondary"}>
-                        {vehicle.available ? "Available" : "Booked"}
-                      </Badge>
+                    {/* NEXUS badge overlay */}
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/80 border border-red-600/60 rounded-full px-2 py-1">
+                      <Image src="/nexus-logo.svg" alt="Nexus" width={14} height={14} />
+                      <span className="text-red-400 text-xs font-bold tracking-wider">NEXUS</span>
+                    </div>
+                    <div className="absolute top-3 right-3">
+                      <Badge className="bg-zinc-900/90 border-zinc-600 text-zinc-300 text-xs">{v.category}</Badge>
                     </div>
                   </div>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
+
+                  <CardContent className="p-5 space-y-4">
+                    <div className="flex items-start justify-between">
                       <div>
-                        <CardTitle className="text-xl">
-                          {vehicle.name} ({vehicle.year})
-                        </CardTitle>
-                        <CardDescription className="flex items-center gap-2 mt-1">
-                          <Car className="h-4 w-4" />
-                          {vehicle.category}
-                          <Users className="h-4 w-4 ml-2" />
-                          {vehicle.passengers} passengers
-                        </CardDescription>
+                        <h3 className="font-bold text-lg text-white leading-tight">{v.name}</h3>
+                        <p className="text-zinc-500 text-sm">{v.year} · {v.color}</p>
                       </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-primary">{vehicle.price}</div>
+                      <div className="flex items-center gap-1 text-zinc-400 text-sm">
+                        <Users className="h-3.5 w-3.5" />
+                        <span>{v.passengers}</span>
                       </div>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex flex-wrap gap-2">
-                        {vehicle.features.map((feature) => (
-                          <Badge key={feature} variant="outline" className="text-xs">
-                            {feature}
-                          </Badge>
-                        ))}
-                      </div>
-                      <div className="text-xs text-muted-foreground space-y-1">
-                        <p>{vehicle.note}</p>
-                        <p>{vehicle.included}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Link href={`/charter/book?vehicle=${vehicle.id}`} className="flex-1">
-                          <Button className="w-full" disabled={!vehicle.available}>
-                            {vehicle.available ? "Book This Vehicle" : "Currently Unavailable"}
-                          </Button>
-                        </Link>
-                        <Button variant="outline" size="icon">
-                          <Star className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
+                    <ul className="space-y-1.5">
+                      {v.features.map((f) => (
+                        <li key={f} className="flex items-center gap-2 text-xs text-zinc-400">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <a
+                      href={`https://wa.me/2347034392197?text=Hi%2C%20I%27d%20like%20to%20book%20the%20${encodeURIComponent(v.name + " " + v.year)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button className="w-full bg-red-600 hover:bg-red-700 text-white mt-1 gap-2">
+                        <Phone className="h-3.5 w-3.5" /> Book This Vehicle
+                      </Button>
+                    </a>
                   </CardContent>
                 </Card>
               ))}
@@ -173,30 +200,46 @@ export default function CharterPage() {
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="w-full py-12 md:py-24 lg:py-32">
+        {/* ── Book CTA ── */}
+        <section className="w-full py-16 bg-zinc-950 border-t border-white/5">
           <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Ready to Book?</h2>
-                <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                  Experience premium transportation with Bridgeocean Charter Services
-                </p>
-              </div>
-              <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                <Link href="/charter/book">
-                  <Button size="lg">Book Your Ride</Button>
-                </Link>
+            <div className="max-w-3xl mx-auto text-center space-y-5">
+              <h2 className="text-3xl font-bold sm:text-4xl">Ready to Book?</h2>
+              <p className="text-gray-400 md:text-lg">
+                Contact us via WhatsApp or email and our team will confirm your vehicle, driver, and schedule.
+                All vehicles available for airport transfers, corporate events, and personal hire.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                <a href="https://wa.me/2347034392197" target="_blank" rel="noopener noreferrer">
+                  <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white gap-2 w-full sm:w-auto">
+                    <Phone className="h-4 w-4" /> WhatsApp +234 703 439 2197
+                  </Button>
+                </a>
                 <Link href="/contact">
-                  <Button size="lg" variant="outline">
-                    Contact Us
+                  <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 gap-2 w-full sm:w-auto">
+                    <Mail className="h-4 w-4" /> Send an Email
                   </Button>
                 </Link>
               </div>
             </div>
           </div>
         </section>
+
       </main>
+
+      {/* Footer */}
+      <footer className="bg-black border-t border-white/10 py-8">
+        <div className="container px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Image src="/images/logo.png" alt="Bridgeocean" width={32} height={32} className="rounded-full invert brightness-110" />
+            <span className="text-sm text-gray-400">© 2026 Bridgeocean Limited. All rights reserved.</span>
+          </div>
+          <div className="text-sm text-gray-500 flex items-center gap-2">
+            <Mail className="h-3.5 w-3.5" />
+            <span>bridgeocean@bridgeocean.xyz</span>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
