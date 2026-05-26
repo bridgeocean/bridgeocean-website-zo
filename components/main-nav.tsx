@@ -71,7 +71,7 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
           <Button
             size="sm"
             className="hidden md:flex bg-red-600 hover:bg-red-700 text-white text-xs"
-            onClick={() => window.open("https://nexus.anytaskchill.com", "_blank")}
+            onClick={() => window.open("https://app.bridgeocean.xyz/live-demo", "_blank")}
           >
             Access Nexus
           </Button>
@@ -126,7 +126,7 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
                 <div className="pt-4 border-t border-zinc-800">
                   <Button
                     className="w-full bg-red-600 hover:bg-red-700"
-                    onClick={() => { window.open("https://nexus.anytaskchill.com", "_blank"); setOpen(false); }}
+                    onClick={() => { window.open("https://app.bridgeocean.xyz/live-demo", "_blank"); setOpen(false); }}
                   >
                     Access Nexus Platform
                   </Button>

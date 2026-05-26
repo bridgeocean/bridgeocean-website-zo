@@ -8,7 +8,7 @@ import Link from "next/link"
 import {
   Satellite, Shield, Clock, Navigation, MapPin,
   Zap, HeartPulse, Briefcase, Car,
-  Building2, Users, Phone, ArrowRight, AlertTriangle
+  Building2, Users, Phone, ArrowRight, AlertTriangle, LandPlot, Globe
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -42,14 +42,14 @@ export default function Home() {
                   <Button
                     size="lg"
                     className="gap-2 bg-red-600 hover:bg-red-700 text-white"
-                    onClick={() => window.open("https://nexus.anytaskchill.com", "_blank")}
+                    onClick={() => window.open("https://app.bridgeocean.xyz/live-demo", "_blank")}
                   >
                     <Satellite className="h-4 w-4" />
                     Access Nexus Platform
                   </Button>
                   <Link href="/contact">
                     <Button size="lg" variant="outline" className="border-zinc-700 text-white hover:bg-zinc-900 hover:text-white w-full sm:w-auto bg-transparent">
-                      Partner With Us
+                      Get a Proposal
                     </Button>
                   </Link>
                 </div>
@@ -135,7 +135,7 @@ export default function Home() {
             <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3">
 
               {/* Nexus — Flagship */}
-              <Card className="relative overflow-hidden border-red-500 border-2">
+              <Card className="relative overflow-hidden border-red-500 border-2 bg-zinc-950">
                 <div className="absolute top-3 right-3">
                   <Badge className="bg-red-600 text-white text-xs">Flagship</Badge>
                 </div>
@@ -143,87 +143,89 @@ export default function Home() {
                   <div className="h-10 w-10 rounded-lg flex items-center justify-center mb-2 bg-black border border-red-600/40">
                     <Image src="/nexus-logo.svg" alt="Nexus" width={24} height={24} />
                   </div>
-                  <CardTitle className="text-xl">Nexus Emergency Platform</CardTitle>
-                  <CardDescription>
-                    AI + satellite-powered emergency coordination. Real-time dispatch, hospital matching, and trauma routing. Our core IP.
+                  <CardTitle className="text-xl text-white">Nexus Emergency Platform</CardTitle>
+                  <CardDescription className="text-zinc-400">
+                    Enterprise SaaS for emergency coordination. License Nexus for your hospital network, corporate campus, or city — AI dispatch, satellite-GPS, and live hospital integration included.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-1.5 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2"><Zap className="h-3.5 w-3.5 text-red-500 flex-shrink-0" /><span>AI intelligent dispatch</span></div>
-                    <div className="flex items-center gap-2"><Navigation className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" /><span>Satellite-GPS routing engine</span></div>
-                    <div className="flex items-center gap-2"><Building2 className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" /><span>Live hospital network</span></div>
-                    <div className="flex items-center gap-2"><AlertTriangle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" /><span>Panic button integration</span></div>
+                  <div className="space-y-1.5 text-sm text-zinc-400">
+                    <div className="flex items-center gap-2"><Zap className="h-3.5 w-3.5 text-red-500 flex-shrink-0" /><span>AI intelligent dispatch engine</span></div>
+                    <div className="flex items-center gap-2"><Navigation className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" /><span>Satellite-GPS routing</span></div>
+                    <div className="flex items-center gap-2"><Building2 className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" /><span>Live hospital network integration</span></div>
+                    <div className="flex items-center gap-2"><Globe className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" /><span>Government &amp; enterprise licensing</span></div>
                   </div>
                   <div className="pt-2 space-y-2">
-                    <Button className="w-full bg-red-600 hover:bg-red-700"
-                      onClick={() => window.open("https://nexus.anytaskchill.com", "_blank")}>
+                    <Button className="w-full bg-red-600 hover:bg-red-700 text-white"
+                      onClick={() => window.open("https://app.bridgeocean.xyz/live-demo", "_blank")}>
                       Access Nexus <ArrowRight className="h-4 w-4 ml-1" />
                     </Button>
                     <Link href="/nexus">
-                      <Button variant="outline" className="w-full">Learn More</Button>
+                      <Button variant="outline" className="w-full border-zinc-700 text-white hover:bg-zinc-900">Learn More</Button>
                     </Link>
                   </div>
                 </CardContent>
               </Card>
 
               {/* NaijaRescue */}
-              <Card className="relative overflow-hidden">
+              <Card className="relative overflow-hidden bg-zinc-950 border-zinc-800">
                 <CardHeader className="pb-3">
                   <div className="h-10 w-10 rounded-lg flex items-center justify-center mb-2 overflow-hidden bg-black">
                     <Image src="/naijarescue-logo.png" alt="NaijaRescue" width={40} height={40} className="object-contain" />
                   </div>
-                  <CardTitle className="text-xl">NaijaRescue</CardTitle>
-                  <CardDescription>
-                    Public-facing SOS emergency tool powered by Nexus. Connects Nigerians to real-time emergency dispatch and coordination.
+                  <CardTitle className="text-xl text-white">NaijaRescue</CardTitle>
+                  <CardDescription className="text-zinc-400">
+                    Public SOS tool powered by Nexus. Proof at scale — every Nigerian can tap once to trigger a Nexus-coordinated emergency response, no login required.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-1.5 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2"><AlertTriangle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" /><span>One-tap SOS alert system</span></div>
-                    <div className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-red-500 flex-shrink-0" /><span>Live location dispatch</span></div>
-                    <div className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-red-500 flex-shrink-0" /><span>24/7 emergency coordination</span></div>
-                    <div className="flex items-center gap-2"><Users className="h-3.5 w-3.5 text-red-500 flex-shrink-0" /><span>Powered by Nexus platform</span></div>
+                  <div className="space-y-1.5 text-sm text-zinc-400">
+                    <div className="flex items-center gap-2"><AlertTriangle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" /><span>One-tap SOS for any Nigerian</span></div>
+                    <div className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-red-500 flex-shrink-0" /><span>GPS-accurate live dispatch</span></div>
+                    <div className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-red-500 flex-shrink-0" /><span>Zero login · zero barrier</span></div>
+                    <div className="flex items-center gap-2"><Users className="h-3.5 w-3.5 text-red-500 flex-shrink-0" /><span>Validates Nexus at community scale</span></div>
                   </div>
                   <div className="pt-2 space-y-2">
                     <Link href="/nexus/naijarescue">
-                      <Button variant="outline" className="w-full border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
+                      <Button variant="outline" className="w-full border-red-600/50 text-red-400 hover:bg-red-950/30 hover:border-red-500">
                         Open NaijaRescue <ArrowRight className="h-4 w-4 ml-1" />
                       </Button>
                     </Link>
                     <Link href="/nexus">
-                      <Button variant="ghost" className="w-full">About the Platform</Button>
+                      <Button variant="ghost" className="w-full text-zinc-400 hover:text-white">About the Platform</Button>
                     </Link>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Charter */}
-              <Card className="relative overflow-hidden">
+              <Card className="relative overflow-hidden bg-zinc-950 border-zinc-800">
                 <CardHeader className="pb-3">
                   <div className="h-10 w-10 bg-emerald-950/50 border border-emerald-600/30 rounded-lg flex items-center justify-center mb-2">
-                    <Car className="h-5 w-5 text-emerald-600" />
+                    <Car className="h-5 w-5 text-emerald-500" />
                   </div>
-                  <CardTitle className="text-xl">Charter Services</CardTitle>
-                  <CardDescription>
-                    Premium protected vehicle charter. Every car is Nexus-enabled with an active panic button linked to emergency dispatch.
+                  <CardTitle className="text-xl text-white">Charter Services</CardTitle>
+                  <CardDescription className="text-zinc-400">
+                    Nexus-protected corporate vehicle hire. Every car carries an active panic button wired directly into emergency dispatch — safety infrastructure, not just transport.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-1.5 text-sm text-muted-foreground">
+                  <div className="space-y-1.5 text-sm text-zinc-400">
                     <div className="flex items-center gap-2"><Shield className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" /><span>Nexus panic button on every car</span></div>
-                    <div className="flex items-center gap-2"><Clock className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" /><span>24/7 availability</span></div>
+                    <div className="flex items-center gap-2"><Clock className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" /><span>24/7 corporate availability</span></div>
                     <div className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" /><span>GPS-tracked premium fleet</span></div>
-                    <div className="flex items-center gap-2"><Briefcase className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" /><span>Corporate & personal hire</span></div>
+                    <div className="flex items-center gap-2"><Briefcase className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" /><span>Corporate retainer packages</span></div>
                   </div>
                   <div className="pt-2 space-y-2">
-                    <Button variant="outline" className="w-full border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950"
-                      onClick={() => window.open("https://app.bridgeocean.xyz/corporate-app", "_blank")}>
-                      View Fleet <ArrowRight className="h-4 w-4 ml-1" />
-                    </Button>
-                    <Link href="/charter/book">
-                      <Button variant="ghost" className="w-full">Book a Charter</Button>
+                    <Link href="/charter">
+                      <Button variant="outline" className="w-full border-emerald-600/50 text-emerald-400 hover:bg-emerald-950/30 hover:border-emerald-500">
+                        View Fleet <ArrowRight className="h-4 w-4 ml-1" />
+                      </Button>
                     </Link>
+                    <Button variant="ghost" className="w-full text-zinc-400 hover:text-white"
+                      onClick={() => window.open("https://wa.me/2347034392197?text=Hi%2C%20I%27d%20like%20to%20discuss%20a%20corporate%20charter%20retainer", "_blank")}>
+                      Enquire via WhatsApp
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -231,54 +233,78 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Who We Serve */}
+        {/* Who We Serve — B2B/B2G FIRST */}
         <section className="w-full py-16 md:py-24 bg-zinc-950">
           <div className="container px-4 md:px-6 mx-auto">
             <div className="flex flex-col items-center justify-center space-y-3 text-center mb-12">
-              <Badge variant="outline" className="border-red-500 text-red-500">Audiences</Badge>
+              <Badge variant="outline" className="border-red-500 text-red-500">Enterprise &amp; Government</Badge>
               <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">Who We Serve</h2>
-              <p className="max-w-[600px] text-muted-foreground md:text-lg">
-                Purpose-built solutions for every stakeholder in Nigeria&apos;s emergency response ecosystem
+              <p className="max-w-[600px] text-zinc-400 md:text-lg">
+                Nexus is built for institutions — organisations that carry responsibility for lives and need infrastructure-grade emergency response
               </p>
             </div>
-            <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3">
               {[
                 {
-                  icon: Building2,
-                  title: "Hospitals & Clinics",
-                  iconColor: "text-red-600",
-                  iconBg: "bg-red-950/40 border border-red-800/40",
-                  dotColor: "bg-red-500",
-                  items: ["Real-time bed availability updates", "Incoming patient pre-alerts", "Ambulance coordination", "B2B partner dashboard access"],
+                  icon: Briefcase,
+                  title: "Corporations & Enterprises",
+                  iconColor: "text-amber-400",
+                  iconBg: "bg-amber-950/40 border border-amber-800/40",
+                  dotColor: "bg-amber-500",
+                  badge: "Primary",
+                  badgeColor: "bg-amber-600",
+                  items: [
+                    "Nexus retainer plans for companies & factories",
+                    "Staff safety infrastructure & panic buttons",
+                    "Gated estate & school campus coverage",
+                    "Corporate charter fleet with live dispatch",
+                  ],
                 },
                 {
-                  icon: Users,
-                  title: "The Public",
-                  iconColor: "text-blue-600",
+                  icon: LandPlot,
+                  title: "Government & Agencies",
+                  iconColor: "text-blue-400",
                   iconBg: "bg-blue-950/40 border border-blue-800/40",
                   dotColor: "bg-blue-500",
-                  items: ["NaijaRescue SOS access", "One-tap emergency dispatch", "Nearest hospital routing", "Real-time responder tracking"],
+                  badge: "Primary",
+                  badgeColor: "bg-blue-600",
+                  items: [
+                    "SaaS licensing for state EMS management",
+                    "Integration with LASEMA, NEMA & state hospitals",
+                    "City-wide emergency operations dashboards",
+                    "Public infrastructure deployment contracts",
+                  ],
                 },
                 {
-                  icon: Briefcase,
-                  title: "Corporate Clients",
-                  iconColor: "text-emerald-600",
-                  iconBg: "bg-emerald-950/40 border border-emerald-800/40",
-                  dotColor: "bg-emerald-500",
-                  items: ["Nexus-protected charter fleet", "Panic button on every vehicle", "VIP concierge transport", "24/7 emergency escalation"],
+                  icon: Building2,
+                  title: "Hospitals & Health Networks",
+                  iconColor: "text-red-400",
+                  iconBg: "bg-red-950/40 border border-red-800/40",
+                  dotColor: "bg-red-500",
+                  badge: "Partner",
+                  badgeColor: "bg-red-700",
+                  items: [
+                    "Real-time bed availability & pre-alerts",
+                    "Ambulance coordination via Nexus",
+                    "B2B hospital integration bus",
+                    "Incoming patient handoff protocols",
+                  ],
                 },
-              ].map(({ icon: Icon, title, iconColor, iconBg, dotColor, items }) => (
-                <Card key={title} className="border shadow-sm">
+              ].map(({ icon: Icon, title, iconColor, iconBg, dotColor, badge, badgeColor, items }) => (
+                <Card key={title} className="relative border border-zinc-800 bg-zinc-900 shadow-sm">
+                  <div className="absolute top-3 right-3">
+                    <Badge className={`${badgeColor} text-white text-xs`}>{badge}</Badge>
+                  </div>
                   <CardHeader className="pb-3">
                     <div className={`h-10 w-10 ${iconBg} rounded-lg flex items-center justify-center mb-2`}>
                       <Icon className={`h-5 w-5 ${iconColor}`} />
                     </div>
-                    <CardTitle className="text-lg">{title}</CardTitle>
+                    <CardTitle className="text-lg text-white">{title}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2">
                       {items.map((item) => (
-                        <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <li key={item} className="flex items-start gap-2 text-sm text-zinc-400">
                           <span className={`mt-1.5 h-1.5 w-1.5 rounded-full ${dotColor} flex-shrink-0`} />
                           {item}
                         </li>
@@ -288,12 +314,16 @@ export default function Home() {
                 </Card>
               ))}
             </div>
-            <div className="flex justify-center mt-10">
+            <div className="flex justify-center mt-10 gap-4 flex-col sm:flex-row">
               <Link href="/contact">
-                <Button size="lg" className="bg-red-600 hover:bg-red-700">
-                  Partner With Us <ArrowRight className="h-4 w-4 ml-2" />
+                <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white">
+                  Request a Proposal <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </Link>
+              <Button size="lg" variant="outline" className="border-zinc-700 text-white hover:bg-zinc-900"
+                onClick={() => window.open("https://app.bridgeocean.xyz/live-demo", "_blank")}>
+                See Nexus Live Demo
+              </Button>
             </div>
           </div>
         </section>
@@ -302,29 +332,32 @@ export default function Home() {
         <section className="w-full py-16 md:py-24 lg:py-32 bg-black">
           <div className="container px-4 md:px-6 mx-auto">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <Badge variant="outline" className="border-red-500 text-red-500">Get Involved</Badge>
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Partner With Bridgeocean</h2>
-              <p className="max-w-[700px] text-muted-foreground md:text-xl">
-                Whether you&apos;re a hospital, government body, corporate entity, or vehicle owner — there&apos;s a partnership pathway for you
+              <Badge variant="outline" className="border-red-500 text-red-500">Ready to Deploy</Badge>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">License Nexus for Your Organisation</h2>
+              <p className="max-w-[700px] text-zinc-400 md:text-xl">
+                Whether you&apos;re a hospital network, a state government agency, a corporate campus, or a gated community — Nexus has a deployment pathway for you.
               </p>
-              <div className="flex flex-col gap-3 sm:flex-row flex-wrap justify-center">
-                <Button size="lg" className="bg-red-600 hover:bg-red-700"
-                  onClick={() => window.open("https://app.bridgeocean.xyz", "_blank")}>
-                  Emergency Logistics Partnership
+              <div className="flex flex-col gap-3 sm:flex-row flex-wrap justify-center pt-2">
+                <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white"
+                  onClick={() => window.open("https://app.bridgeocean.xyz/live-demo", "_blank")}>
+                  Access Nexus Live Demo
                 </Button>
-                <Link href="/charter/partner">
-                  <Button size="lg" variant="outline">Register Your Vehicle</Button>
-                </Link>
                 <Link href="/contact">
-                  <Button size="lg" variant="ghost">Contact Us</Button>
+                  <Button size="lg" variant="outline" className="border-zinc-700 text-white hover:bg-zinc-900">
+                    Talk to Our Team
+                  </Button>
                 </Link>
+                <Button size="lg" variant="ghost" className="text-zinc-400 hover:text-white"
+                  onClick={() => window.open("https://wa.me/2349069183165?text=Hi%2C%20I%27d%20like%20to%20learn%20more%20about%20Nexus%20for%20my%20organisation", "_blank")}>
+                  WhatsApp Us
+                </Button>
               </div>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="border-t py-6 md:py-0 bg-zinc-950 text-zinc-400">
+      <footer className="border-t py-6 md:py-0 bg-zinc-950 text-zinc-400 border-zinc-800">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row mx-auto px-4">
           <div className="flex items-center gap-2">
             <Image src="/images/logo.png" alt="Bridgeocean Logo" width={24} height={24} className="h-6 w-auto rounded-full invert brightness-110" />

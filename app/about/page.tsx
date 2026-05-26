@@ -325,7 +325,7 @@ export default function AboutPage() {
                   <Mail className="h-4 w-4" /> Get In Touch
                 </Button>
               </Link>
-              <a href="https://wa.me/2349135630154" target="_blank" rel="noopener noreferrer">
+              <a href="https://wa.me/2349069183165" target="_blank" rel="noopener noreferrer">
                 <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 w-full sm:w-auto gap-2">
                   <Phone className="h-4 w-4" /> WhatsApp +234 913 563 0154
                 </Button>

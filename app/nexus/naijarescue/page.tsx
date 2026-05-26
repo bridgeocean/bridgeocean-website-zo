@@ -90,6 +90,58 @@ export default function NaijaRescuePage() {
           </div>
         </section>
 
+        {/* ── Human Stories ── */}
+        <section className="w-full py-14 bg-black">
+          <div className="container px-4 md:px-6">
+            <div className="text-center mb-10 space-y-2">
+              <h2 className="text-2xl font-bold text-white">Real Emergencies. Real People.</h2>
+              <p className="text-gray-400 text-sm max-w-xl mx-auto">
+                NaijaRescue isn&apos;t an app — it&apos;s the difference between a missed call and help arriving in time.
+              </p>
+            </div>
+            <div className="grid gap-5 md:grid-cols-3 max-w-4xl mx-auto">
+              {[
+                {
+                  scenario: "Road Accident, Lekki Expressway",
+                  quote: "My colleague slumped at the wheel. I had no idea who to call. NaijaRescue located us and an ambulance arrived before I even finished explaining what happened.",
+                  name: "Emeka O., Corporate Driver",
+                  time: "Response in 11 minutes",
+                  color: "border-red-600/30 bg-red-950/10",
+                  timeColor: "text-red-400",
+                },
+                {
+                  scenario: "Sudden Collapse, Ikeja",
+                  quote: "My mother collapsed at home. I pressed SOS and Nexus tracked my location automatically — the response team called me back within seconds.",
+                  name: "Adaeze K., Lagos",
+                  time: "Hospital pre-alerted",
+                  color: "border-blue-600/30 bg-blue-950/10",
+                  timeColor: "text-blue-400",
+                },
+                {
+                  scenario: "Panic on Campus, Ajah",
+                  quote: "A student had a severe allergic reaction during a lecture. The panic button on our Nexus-linked vehicle got emergency services moving before the clinic even opened.",
+                  name: "School Security Officer",
+                  time: "Dispatched in < 3 minutes",
+                  color: "border-emerald-600/30 bg-emerald-950/10",
+                  timeColor: "text-emerald-400",
+                },
+              ].map((s) => (
+                <div key={s.scenario} className={`rounded-xl border ${s.color} p-5 space-y-3`}>
+                  <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">{s.scenario}</p>
+                  <p className="text-sm text-gray-300 leading-relaxed italic">&ldquo;{s.quote}&rdquo;</p>
+                  <div className="pt-1 border-t border-white/5 flex items-center justify-between">
+                    <span className="text-xs text-gray-500">— {s.name}</span>
+                    <span className={`text-xs font-semibold ${s.timeColor}`}>{s.time}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="text-center mt-8">
+              <p className="text-xs text-gray-600">Scenarios are illustrative of the kind of emergencies Nexus is built to handle.</p>
+            </div>
+          </div>
+        </section>
+
         {/* ── Live Ops Dashboard ── */}
         <section className="w-full py-10 bg-zinc-950">
           <div className="container px-4 md:px-6">
@@ -114,12 +166,12 @@ export default function NaijaRescuePage() {
                   Learn About Nexus
                 </Button>
               </Link>
-              <Link href="/contact">
+              <a href="https://wa.me/2349111100110" target="_blank" rel="noopener noreferrer">
                 <Button className="bg-red-600 hover:bg-red-700 text-white gap-2">
                   <Phone className="h-4 w-4" />
-                  Emergency: +2349111100110
+                  SOS: +2349111100110
                 </Button>
-              </Link>
+              </a>
             </div>
           </div>
         </section>
