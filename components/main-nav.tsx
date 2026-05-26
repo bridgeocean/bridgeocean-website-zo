@@ -32,9 +32,6 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
             height={36}
             className="rounded-full invert brightness-110"
           />
-          <span className="font-bold text-base tracking-tight hidden sm:block">
-            <span className="text-red-500">Bridge</span><span className="text-white">ocean</span>
-          </span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -96,9 +93,6 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
                     height={32}
                     className="rounded-full invert brightness-110"
                   />
-                  <span className="font-bold text-base tracking-tight">
-                    <span className="text-red-500">Bridge</span><span className="text-white">ocean</span>
-                  </span>
                 </Link>
                 {navigation.map((item) =>
                   item.external ? (
