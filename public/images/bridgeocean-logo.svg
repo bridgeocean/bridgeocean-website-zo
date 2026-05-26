@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 82" fill="none">
+
+  <!-- === ICON === -->
+
+  <!-- Circuit pins protruding above the hex -->
+  <rect x="27" y="0" width="4.5" height="17" rx="2.25" fill="white"/>
+  <rect x="35.5" y="-2" width="4.5" height="19" rx="2.25" fill="white"/>
+
+  <!-- Outer red hexagon (flat-top) -->
+  <polygon points="58,42 46,63 22,63 10,42 22,21 46,21" fill="#CC1111"/>
+
+  <!-- Inner dark hexagon for 3-D depth -->
+  <polygon points="49,42 40,56 28,56 19,42 28,28 40,28" fill="#880B0B"/>
+
+  <!-- White stylised 'b' letterform -->
+  <!-- Stem (left vertical bar) -->
+  <rect x="24" y="28" width="5.5" height="29" rx="2.75" fill="white"/>
+  <!-- Bowl — circle clipped to right half -->
+  <circle cx="33.5" cy="47" r="8.5" fill="white"/>
+  <!-- Mask the bowl back against the dark inner hex so only right half shows -->
+  <rect x="19" y="38.5" width="14.5" height="17" fill="#880B0B"/>
+  <!-- Re-draw tiny junction to look clean -->
+  <rect x="24" y="38.5" width="5.5" height="17" fill="white"/>
+
+  <!-- === WORDMARK === -->
+  <text x="72" y="55"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="38"
+        font-weight="800"
+        letter-spacing="-0.5">
+    <tspan fill="white">Bridge</tspan><tspan fill="#CC1111">ocean</tspan>
+  </text>
+
+</svg>
