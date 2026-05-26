@@ -90,6 +90,59 @@ export default function NaijaRescuePage() {
           </div>
         </section>
 
+        {/* ── Real Life Imagery ── */}
+        <section className="w-full py-0 bg-black overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-3 h-56 md:h-72">
+            {/* Ambulance */}
+            <div
+              className="relative overflow-hidden"
+              style={{
+                backgroundImage: "url('https://images.unsplash.com/photo-1584515933487-779824d29309?auto=format&fit=crop&w=800&q=80')",
+                backgroundSize: "cover",
+                backgroundPosition: "center"
+              }}
+            >
+              <div className="absolute inset-0 bg-black/60" />
+              <div className="absolute bottom-4 left-4 z-10">
+                <p className="text-white text-xs font-semibold uppercase tracking-widest">Emergency Dispatch</p>
+                <p className="text-zinc-400 text-xs mt-0.5">Response in minutes, not hours</p>
+              </div>
+            </div>
+
+            {/* Hospital */}
+            <div
+              className="relative overflow-hidden"
+              style={{
+                backgroundImage: "url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=800&q=80')",
+                backgroundSize: "cover",
+                backgroundPosition: "center"
+              }}
+            >
+              <div className="absolute inset-0 bg-black/55 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+              <div className="absolute bottom-4 left-4 z-10">
+                <p className="text-white text-xs font-semibold uppercase tracking-widest">Hospital Ready</p>
+                <p className="text-zinc-400 text-xs mt-0.5">Pre-alerted before you arrive</p>
+              </div>
+            </div>
+
+            {/* Emergency responder / scene */}
+            <div
+              className="relative overflow-hidden"
+              style={{
+                backgroundImage: "url('https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=800&q=80')",
+                backgroundSize: "cover",
+                backgroundPosition: "center"
+              }}
+            >
+              <div className="absolute inset-0 bg-black/60" />
+              <div className="absolute bottom-4 left-4 z-10">
+                <p className="text-white text-xs font-semibold uppercase tracking-widest">First Responders</p>
+                <p className="text-zinc-400 text-xs mt-0.5">Coordinated by Nexus AI</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ── Human Stories ── */}
         <section className="w-full py-14 bg-black">
           <div className="container px-4 md:px-6">
