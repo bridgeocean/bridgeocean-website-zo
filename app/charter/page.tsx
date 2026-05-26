@@ -100,7 +100,7 @@ export default function CharterPage() {
                 dispatch. One press and help is on the way. Premium transport with life-safety built in.
               </p>
               <div className="flex flex-wrap gap-3 pt-2">
-                <a href="https://wa.me/2347034392197?text=Hi%2C%20I%27d%20like%20to%20book%20a%20charter%20vehicle" target="_blank" rel="noopener noreferrer">
+                <a href="https://wa.me/2349135630154?text=Hi%2C%20I%27d%20like%20to%20book%20a%20charter%20vehicle" target="_blank" rel="noopener noreferrer">
                   <Button size="lg" className="bg-red-600 hover:bg-red-700 gap-2">
                     <Phone className="h-4 w-4" /> Book via WhatsApp
                   </Button>
@@ -185,7 +185,7 @@ export default function CharterPage() {
                       ))}
                     </ul>
                     <a
-                      href={`https://wa.me/2347034392197?text=Hi%2C%20I%27d%20like%20to%20book%20the%20${encodeURIComponent(v.name + " " + v.year)}`}
+                      href={`https://wa.me/2349135630154?text=Hi%2C%20I%27d%20like%20to%20book%20the%20${encodeURIComponent(v.name + " " + v.year)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -210,9 +210,14 @@ export default function CharterPage() {
                 All vehicles available for airport transfers, corporate events, and personal hire.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-                <a href="https://wa.me/2347034392197" target="_blank" rel="noopener noreferrer">
+                <a href="https://wa.me/2349135630154?text=Hi%2C%20I%27d%20like%20to%20book%20a%20charter%20vehicle" target="_blank" rel="noopener noreferrer">
                   <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white gap-2 w-full sm:w-auto">
-                    <Phone className="h-4 w-4" /> WhatsApp +234 703 439 2197
+                    <Phone className="h-4 w-4" /> WhatsApp +234 913 563 0154
+                  </Button>
+                </a>
+                <a href="https://wa.me/2349069183165?text=Hi%2C%20I%27d%20like%20to%20book%20a%20charter%20vehicle" target="_blank" rel="noopener noreferrer">
+                  <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white gap-2 w-full sm:w-auto">
+                    <Phone className="h-4 w-4" /> WhatsApp +234 906 918 3165
                   </Button>
                 </a>
                 <Link href="/contact">

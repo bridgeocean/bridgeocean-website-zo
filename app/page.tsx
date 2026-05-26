@@ -223,7 +223,7 @@ export default function Home() {
                       </Button>
                     </Link>
                     <Button variant="ghost" className="w-full text-zinc-400 hover:text-white"
-                      onClick={() => window.open("https://wa.me/2347034392197?text=Hi%2C%20I%27d%20like%20to%20discuss%20a%20corporate%20charter%20retainer", "_blank")}>
+                      onClick={() => window.open("https://wa.me/2349135630154?text=Hi%2C%20I%27d%20like%20to%20discuss%20a%20corporate%20charter%20retainer", "_blank")}>
                       Enquire via WhatsApp
                     </Button>
                   </div>
