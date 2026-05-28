@@ -38,7 +38,7 @@ export default function Home() {
                   </p>
                 </div>
                 <div>
-                  <Link href="https://app.bridgeocean.xyz">
+                  <Link href="/nexus">
                     <Button size="lg" className="gap-2 bg-red-600 hover:bg-red-700 text-white">
                       Access Nexus Platform <ArrowRight className="h-4 w-4" />
                     </Button>
