@@ -92,8 +92,24 @@ export default function NaijaRescuePage() {
 
         {/* ── Real Life Imagery ── */}
         <section className="w-full py-0 bg-black overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-3 h-56 md:h-72">
-            {/* Ambulance */}
+          <div className="grid grid-cols-2 md:grid-cols-4 h-56 md:h-72">
+            {/* Emergency Dispatch — dark skin */}
+            <div
+              className="relative overflow-hidden"
+              style={{
+                backgroundImage: "url('https://images.unsplash.com/photo-1559291001-693fb9166ceb?auto=format&fit=crop&w=800&q=80')",
+                backgroundSize: "cover",
+                backgroundPosition: "center"
+              }}
+            >
+              <div className="absolute inset-0 bg-black/55" />
+              <div className="absolute bottom-4 left-4 z-10">
+                <p className="text-white text-xs font-semibold uppercase tracking-widest">Emergency Dispatch</p>
+                <p className="text-zinc-400 text-xs mt-0.5">Response in minutes, not hours</p>
+              </div>
+            </div>
+
+            {/* Emergency Care — light skin */}
             <div
               className="relative overflow-hidden"
               style={{
@@ -102,10 +118,10 @@ export default function NaijaRescuePage() {
                 backgroundPosition: "center"
               }}
             >
-              <div className="absolute inset-0 bg-black/60" />
+              <div className="absolute inset-0 bg-black/55" />
               <div className="absolute bottom-4 left-4 z-10">
-                <p className="text-white text-xs font-semibold uppercase tracking-widest">Emergency Dispatch</p>
-                <p className="text-zinc-400 text-xs mt-0.5">Response in minutes, not hours</p>
+                <p className="text-white text-xs font-semibold uppercase tracking-widest">Emergency Care</p>
+                <p className="text-zinc-400 text-xs mt-0.5">One standard for every Nigerian</p>
               </div>
             </div>
 
