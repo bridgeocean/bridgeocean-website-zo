@@ -38,9 +38,9 @@ export default function Home() {
                   </p>
                 </div>
                 <div>
-                  <Link href="/contact">
+                  <Link href="https://app.bridgeocean.xyz">
                     <Button size="lg" className="gap-2 bg-red-600 hover:bg-red-700 text-white">
-                      Request a Proposal <ArrowRight className="h-4 w-4" />
+                      Access Nexus Platform <ArrowRight className="h-4 w-4" />
                     </Button>
                   </Link>
                 </div>
@@ -126,7 +126,7 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/contact">
+                <Link href="https://app.bridgeocean.xyz">
                   <Button className="w-full bg-amber-600 hover:bg-amber-700 text-white">
                     Get a Corporate Proposal <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
@@ -160,7 +160,7 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/contact">
+                <Link href="https://app.bridgeocean.xyz">
                   <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                     Discuss Government Licensing <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
@@ -298,7 +298,7 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/contact">
+                <Link href="https://app.bridgeocean.xyz">
                   <Button variant="outline" className="w-full bg-transparent border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white">
                     Partner with Us
                   </Button>
@@ -318,9 +318,9 @@ export default function Home() {
                 Whether you&apos;re a hospital network, a state government agency, a corporate campus, or a gated community — Nexus has a deployment pathway for you.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row flex-wrap justify-center pt-2">
-                <Link href="/contact">
+                <Link href="https://app.bridgeocean.xyz">
                   <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white">
-                    Request a Proposal <ArrowRight className="h-4 w-4 ml-2" />
+                    Access Nexus Platform <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
                 </Link>
                 <Button size="lg" variant="outline" className="bg-transparent border-zinc-700 text-white hover:bg-zinc-900"
@@ -349,7 +349,7 @@ export default function Home() {
             <a href="mailto:bridgeocean@bridgeocean.xyz" className="hover:text-white transition-colors">bridgeocean@bridgeocean.xyz</a>
             <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
-            <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
+            <Link href="https://app.bridgeocean.xyz" className="hover:text-white transition-colors">Contact</Link>
           </div>
         </div>
       </footer>
