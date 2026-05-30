@@ -111,7 +111,7 @@ export default function NaijaRescuePanel() {
             priority
           />
           <div>
-            <h2 className="text-xl font-bold text-white">NaijaRescue — Live Ops</h2>
+            <h2 className="text-xl font-bold text-white">NaijaRescue</h2>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className={`h-2 w-2 rounded-full ${pulse ? "bg-yellow-400" : "bg-green-400 animate-pulse"}`} />
               <span className="text-xs text-zinc-400">
