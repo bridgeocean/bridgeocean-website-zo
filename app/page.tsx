@@ -9,7 +9,8 @@ import {
   Shield, Clock, Navigation,
   Briefcase, Car,
   Phone, ArrowRight, AlertTriangle, LandPlot,
-  Server, Network, HeartPulse
+  HeartPulse,
+  FileText, Truck, MapPin, ClipboardList, Radio
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -92,8 +93,137 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── SECTION 2: Who We Serve ── */}
-        <section className="w-full py-16 md:py-24 lg:py-32 bg-zinc-950">
+        {/* ── SECTION 2: What Is Nexus ── */}
+        <section className="w-full py-16 md:py-24 bg-black">
+          <div className="container px-4 md:px-6 mx-auto">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              <div className="space-y-6">
+                <Badge variant="outline" className="border-red-500 text-red-500">The Platform</Badge>
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">
+                  Nexus is a response coordination platform
+                </h2>
+                <p className="text-zinc-400 md:text-lg leading-relaxed">
+                  Nexus helps organisations manage incidents, coordinate responders, track progress, and ensure accountability — from the moment an emergency is reported to the moment it is resolved.
+                </p>
+                <p className="text-zinc-500 text-base leading-relaxed">
+                  Whether the responder is an ambulance, a security team, a fleet operator, or a government agency — Nexus coordinates the journey from request to resolution.
+                </p>
+
+                {/* Platform capabilities */}
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  {[
+                    { icon: FileText, label: "Case Management" },
+                    { icon: Truck, label: "Resource Coordination" },
+                    { icon: Navigation, label: "Routing & Dispatch" },
+                    { icon: MapPin, label: "Live Tracking" },
+                    { icon: Radio, label: "Communications" },
+                    { icon: ClipboardList, label: "Audit & Accountability" },
+                  ].map(({ icon: Icon, label }) => (
+                    <div key={label} className="flex items-center gap-2.5 text-sm text-zinc-300">
+                      <div className="h-7 w-7 rounded-lg bg-red-950/50 border border-red-900/40 flex items-center justify-center flex-shrink-0">
+                        <Icon className="h-3.5 w-3.5 text-red-400" />
+                      </div>
+                      {label}
+                    </div>
+                  ))}
+                </div>
+
+                <Link href="/nexus">
+                  <Button className="bg-red-600 hover:bg-red-700 text-white gap-2">
+                    Explore the Nexus Platform <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+
+              {/* Dashboard screenshot */}
+              <div className="relative rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl shadow-black/60">
+                <div className="absolute top-0 left-0 right-0 h-8 bg-zinc-900 border-b border-zinc-800 flex items-center px-3 gap-1.5 z-10">
+                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
+                  <span className="ml-3 text-xs text-zinc-500 font-mono">Nexus · Dispatch Operations Console</span>
+                  <span className="ml-auto flex items-center gap-1 text-xs text-green-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+                    Live
+                  </span>
+                </div>
+                <Image
+                  src="/images/nexus-dashboard.jpg"
+                  alt="Nexus dispatch operations dashboard"
+                  width={1892}
+                  height={914}
+                  className="w-full pt-8"
+                  priority
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── SECTION 3: How It Works ── */}
+        <section className="w-full py-16 md:py-24 bg-zinc-950">
+          <div className="container px-4 md:px-6 mx-auto">
+            <div className="flex flex-col items-center justify-center space-y-3 text-center mb-12">
+              <Badge variant="outline" className="border-zinc-600 text-zinc-400">How It Works</Badge>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">From Incident to Resolution — in Real Time</h2>
+              <p className="max-w-[580px] text-zinc-400 md:text-lg">
+                Nexus manages the complete lifecycle of every emergency — so nothing falls through the gap between detection and resolution.
+              </p>
+            </div>
+
+            <div className="mx-auto max-w-5xl">
+              {/* Flow steps */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {[
+                  { step: "01", title: "Incident Reported", body: "A panic button press, SOS call, or operator alert reaches Nexus — GPS location captured, incident type classified.", color: "text-red-400", border: "border-red-900/40", bg: "bg-red-950/20" },
+                  { step: "02", title: "Case Created", body: "Nexus opens a tracked case with a unique ID, timestamps, and a full audit trail from first contact.", color: "text-orange-400", border: "border-orange-900/40", bg: "bg-orange-950/20" },
+                  { step: "03", title: "Resource Identified", body: "The nearest qualified responder — ambulance, driver, or operator — is identified from the live resource registry.", color: "text-amber-400", border: "border-amber-900/40", bg: "bg-amber-950/20" },
+                  { step: "04", title: "Response Coordinated", body: "Nexus dispatches the responder with optimised routing, notifies the patient, and updates all stakeholders in real time.", color: "text-yellow-400", border: "border-yellow-900/40", bg: "bg-yellow-950/20" },
+                  { step: "05", title: "Live Tracking", body: "Patients, vehicles, and facilities are tracked on a live map. The hospital is pre-alerted before the patient arrives.", color: "text-green-400", border: "border-green-900/40", bg: "bg-green-950/20" },
+                  { step: "06", title: "Case Resolved", body: "The case is closed with a full record — response time, responder, outcome, and audit log. Accountability at every step.", color: "text-blue-400", border: "border-blue-900/40", bg: "bg-blue-950/20" },
+                ].map(({ step, title, body, color, border, bg }) => (
+                  <div key={step} className={`border ${border} ${bg} rounded-2xl p-6 space-y-3`}>
+                    <p className={`text-3xl font-black ${color}`}>{step}</p>
+                    <h3 className="text-base font-bold text-white">{title}</h3>
+                    <p className="text-zinc-400 text-sm leading-relaxed">{body}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Tracking screenshot */}
+              <div className="mt-10 relative rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl shadow-black/60">
+                <div className="absolute top-0 left-0 right-0 h-8 bg-zinc-900 border-b border-zinc-800 flex items-center px-3 gap-1.5 z-10">
+                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
+                  <span className="ml-3 text-xs text-zinc-500 font-mono">Nexus · Live Tracking — Lagos, Nigeria</span>
+                  <span className="ml-auto flex items-center gap-1 text-xs text-green-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+                    4 Vehicles · 2 Patients · 3 Facilities
+                  </span>
+                </div>
+                <Image
+                  src="/images/nexus-tracking.jpg"
+                  alt="Nexus live tracking map — Lagos, Nigeria"
+                  width={1892}
+                  height={942}
+                  className="w-full pt-8"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-center mt-10">
+              <Link href="/nexus">
+                <Button className="bg-red-600 hover:bg-red-700 text-white gap-2">
+                  See the Full Nexus Platform <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* ── SECTION 4: Who We Serve ── */}
+        <section className="w-full py-16 md:py-24 lg:py-32 bg-black">
           <div className="container px-4 md:px-6 mx-auto">
             <div className="flex flex-col items-center justify-center space-y-3 text-center mb-12">
               <Badge variant="outline" className="border-red-500 text-red-500">Who We Serve</Badge>
@@ -207,25 +337,24 @@ export default function Home() {
                   </Button>
                 </Link>
               </div>
-
             </div>
           </div>
         </section>
 
-        {/* ── SECTION 3: What Nexus Powers ── */}
-        <section className="w-full py-16 md:py-24 bg-black">
+        {/* ── SECTION 5: Solutions Powered by Nexus ── */}
+        <section className="w-full py-16 md:py-24 bg-zinc-950">
           <div className="container px-4 md:px-6 mx-auto">
             <div className="flex flex-col items-center justify-center space-y-3 text-center mb-12">
-              <Badge variant="outline" className="border-red-500 text-red-500">Nexus in Action</Badge>
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">What Nexus Powers</h2>
+              <Badge variant="outline" className="border-red-500 text-red-500">Solutions Powered by Nexus</Badge>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">What Nexus Powers Today</h2>
               <p className="max-w-[600px] text-zinc-400 md:text-lg">
-                Two live products built on Nexus — proving the platform works at real scale across Nigeria.
+                Two live products built on Nexus — proving the platform works at real scale across Nigeria. More solutions are in development.
               </p>
             </div>
             <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-2">
 
               {/* NaijaRescue */}
-              <Card className="relative overflow-hidden bg-zinc-950 border-zinc-800">
+              <Card className="relative overflow-hidden bg-zinc-900 border-zinc-800">
                 <CardHeader className="pb-3">
                   <div className="h-10 w-10 rounded-lg flex items-center justify-center mb-2 overflow-hidden bg-black">
                     <Image src="/naijarescue-logo.png" alt="NaijaRescue" width={40} height={40} className="object-contain" />
@@ -256,7 +385,7 @@ export default function Home() {
               </Card>
 
               {/* Charter */}
-              <Card className="relative overflow-hidden bg-zinc-950 border-zinc-800">
+              <Card className="relative overflow-hidden bg-zinc-900 border-zinc-800">
                 <CardHeader className="pb-3">
                   <div className="h-10 w-10 bg-emerald-950/50 border border-emerald-600/30 rounded-lg flex items-center justify-center mb-2">
                     <Car className="h-5 w-5 text-emerald-500" />
@@ -280,61 +409,20 @@ export default function Home() {
                 </CardContent>
               </Card>
             </div>
-          </div>
-        </section>
 
-        {/* ── SECTION 4: How Nexus Works ── */}
-        <section className="w-full py-16 md:py-24 bg-zinc-950">
-          <div className="container px-4 md:px-6 mx-auto">
-            <div className="flex flex-col items-center justify-center space-y-3 text-center mb-12">
-              <Badge variant="outline" className="border-zinc-600 text-zinc-400">How It Works</Badge>
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">From Emergency to Response — in Real Time</h2>
-              <p className="max-w-[580px] text-zinc-400 md:text-lg">
-                Nexus does in seconds what manual coordination cannot do at all.
-              </p>
-            </div>
-            <div className="mx-auto max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[
-                {
-                  step: "01",
-                  title: "Emergency Reported",
-                  body: "A panic button, SOS call, or operator alert reaches Nexus instantly — GPS location captured, incident classified.",
-                  color: "text-red-400",
-                  border: "border-red-900/40",
-                },
-                {
-                  step: "02",
-                  title: "Responder Dispatched",
-                  body: "Nexus AI identifies the nearest qualified responder and routes them in real time — no phone calls, no delays, no guesswork.",
-                  color: "text-amber-400",
-                  border: "border-amber-900/40",
-                },
-                {
-                  step: "03",
-                  title: "Hospital Pre-Alerted",
-                  body: "The receiving hospital is notified before arrival — bed prepared, team ready. The golden hour is protected.",
-                  color: "text-green-400",
-                  border: "border-green-900/40",
-                },
-              ].map(({ step, title, body, color, border }) => (
-                <div key={step} className={`border ${border} bg-zinc-900 rounded-2xl p-8 space-y-4`}>
-                  <p className={`text-4xl font-black ${color}`}>{step}</p>
-                  <h3 className="text-lg font-bold text-white">{title}</h3>
-                  <p className="text-zinc-400 text-sm leading-relaxed">{body}</p>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-center mt-10">
-              <Link href="/nexus">
-                <Button className="bg-red-600 hover:bg-red-700 text-white gap-2">
-                  See the Full Nexus Platform <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
+            {/* Future solutions teaser */}
+            <div className="mx-auto max-w-4xl mt-6 border border-zinc-800 border-dashed rounded-2xl p-6">
+              <p className="text-center text-zinc-500 text-sm mb-4">More solutions in development on the Nexus platform</p>
+              <div className="flex flex-wrap justify-center gap-3">
+                {["Estate Security", "Corporate Safety", "Government Emergency Services", "Industrial Incident Management", "Campus Safety", "Transport Coordination"].map((s) => (
+                  <span key={s} className="text-xs text-zinc-600 border border-zinc-800 rounded-full px-3 py-1">{s}</span>
+                ))}
+              </div>
             </div>
           </div>
         </section>
 
-        {/* ── SECTION 5: Enterprise CTA ── */}
+        {/* ── SECTION 6: Enterprise CTA ── */}
         <section className="w-full py-16 md:py-24 lg:py-32 bg-black">
           <div className="container px-4 md:px-6 mx-auto">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
