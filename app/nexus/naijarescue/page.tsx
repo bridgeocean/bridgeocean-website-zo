@@ -97,7 +97,7 @@ export default function NaijaRescuePage() {
             <div
               className="relative overflow-hidden"
               style={{
-                backgroundImage: "url('https://images.unsplash.com/photo-1559291001-693fb9166ceb?auto=format&fit=crop&w=800&q=80')",
+                backgroundImage: "url('/images/dispatcher.jpg')",
                 backgroundSize: "cover",
                 backgroundPosition: "center"
               }}
