@@ -30,6 +30,7 @@ import {
   Layers,
   HeartPulse,
   Briefcase,
+  LandPlot,
 } from "lucide-react"
 
 export default function NexusPage() {
@@ -302,7 +303,7 @@ export default function NexusPage() {
         <section className="w-full py-16 md:py-24 bg-black">
           <div className="container px-4 md:px-6">
             <div className="text-center mb-14 space-y-3">
-              <Badge className="bg-green-600/20 border-green-600/40 text-green-400">Who It&#39;s For</Badge>
+              <Badge className="bg-green-600/20 border-green-600/40 text-green-400">Who It's For</Badge>
               <h2 className="text-3xl font-bold sm:text-4xl md:text-5xl">Nexus Is Built for Institutions That Carry Responsibility</h2>
               <p className="text-gray-400 max-w-2xl mx-auto">
                 Whether you run a state government, a health plan, or a corporate campus — Nexus gives you the infrastructure to protect the people in your care.
@@ -351,7 +352,7 @@ export default function NexusPage() {
                   badge: "B2B",
                   badgeColor: "bg-amber-600",
                   title: "Corporations & Enterprises",
-                  body: "Your duty of care doesn&#39;t end when staff leave the office. Nexus extends real emergency coverage to every person, site, and vehicle in your operation.",
+                  body: "Your duty of care doesn't end when staff leave the office. Nexus extends real emergency coverage to every person, site, and vehicle in your operation.",
                   bullet: [
                     "Emergency dispatch for staff across every site",
                     "Panic button hardware for vehicles and campus zones",
