@@ -37,7 +37,7 @@ export default function Home() {
                     Your organisation is responsible for lives. Nexus gives you the coordination infrastructure to protect them — real-time dispatch, GPS routing, and hospital integration, deployed at the scale you need.
                   </p>
                   <p className="max-w-[560px] text-zinc-500 md:text-base leading-relaxed">
-                    Licensed by governments, HMOs, corporations, and enterprises across Nigeria.
+                    Built for governments, HMOs, corporations, and enterprises across Nigeria.
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row">
