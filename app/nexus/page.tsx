@@ -28,6 +28,8 @@ import {
   Globe,
   Server,
   Layers,
+  HeartPulse,
+  Briefcase,
 } from "lucide-react"
 
 export default function NexusPage() {
@@ -79,18 +81,17 @@ export default function NexusPage() {
                   ))}
                 </div>
 
-                <div className="flex gap-3 pt-2">
-                  <Link href="/nexus/naijarescue">
+                <div className="flex flex-col gap-3 sm:flex-row pt-2">
+                  <Link href="https://app.bridgeocean.xyz">
                     <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white gap-2">
                       <Activity className="h-4 w-4" />
-                      NaijaRescue Live Ops
+                      Access Nexus Platform
                     </Button>
                   </Link>
-                  <Link href="/contact">
-                    <Button size="lg" variant="outline" className="bg-transparent border-white/20 text-white hover:bg-white/10 gap-2">
-                      Partner With Us
-                    </Button>
-                  </Link>
+                  <Button size="lg" variant="outline" className="bg-transparent border-white/20 text-white hover:bg-white/10 gap-2"
+                    onClick={() => window.open("https://wa.me/2349069183165?text=Hi%2C%20I%27d%20like%20to%20learn%20more%20about%20Nexus%20for%20my%20organisation", "_blank")}>
+                    WhatsApp Us
+                  </Button>
                 </div>
               </div>
 
@@ -171,7 +172,7 @@ export default function NexusPage() {
             </div>
             <div className="mt-10 bg-red-950/40 border border-red-800/50 rounded-xl p-6 max-w-4xl mx-auto text-center">
               <p className="text-lg font-semibold text-red-300">
-                ~15 people die globally every minute due to lack of effective emergency medical response.
+                15 people die globally every minute from preventable emergencies — 10 of those due to poor coordination.
               </p>
               <p className="text-gray-400 mt-2 text-sm">Nigeria accounts for a disproportionate share — 227M+ people, one fragmented system.</p>
             </div>
@@ -297,75 +298,94 @@ export default function NexusPage() {
           </div>
         </section>
 
-        {/* ── Access Levels ── */}
+        {/* ── Who Nexus Is For ── */}
         <section className="w-full py-16 md:py-24 bg-black">
           <div className="container px-4 md:px-6">
             <div className="text-center mb-14 space-y-3">
-              <Badge className="bg-green-600/20 border-green-600/40 text-green-400">Access Tiers</Badge>
-              <h2 className="text-3xl font-bold sm:text-4xl md:text-5xl">Who Can Access Nexus</h2>
+              <Badge className="bg-green-600/20 border-green-600/40 text-green-400">Who It&#39;s For</Badge>
+              <h2 className="text-3xl font-bold sm:text-4xl md:text-5xl">Nexus Is Built for Institutions That Carry Responsibility</h2>
               <p className="text-gray-400 max-w-2xl mx-auto">
-                Nexus is a closed platform. Access is granted by tier — each with the appropriate tools and data scope.
+                Whether you run a state government, a health plan, or a corporate campus — Nexus gives you the infrastructure to protect the people in your care.
               </p>
             </div>
             <div className="grid gap-6 md:grid-cols-3">
               {[
                 {
-                  icon: Users,
-                  title: "The Public",
-                  sub: "via NaijaRescue",
-                  access: "SOS Submission Only",
-                  bullet: ["One-tap emergency alert", "GPS auto-detect", "Incident status updates", "No login required"],
-                  cta: "Open NaijaRescue",
-                  href: "/nexus/naijarescue",
-                  accent: "border-red-600/50 bg-red-950/20",
-                  btnClass: "bg-red-600 hover:bg-red-700",
+                  icon: LandPlot,
+                  badge: "B2G",
+                  badgeColor: "bg-blue-600",
+                  title: "Government & Agencies",
+                  body: "Deploy Nexus as your state or federal emergency operations platform. Coordinate ambulances, hospitals, and first responders on one live dashboard.",
+                  bullet: [
+                    "City-wide emergency operations dashboard",
+                    "Live coordination with LASEMA, NEMA & state hospitals",
+                    "SaaS licensing — deploy on your existing network",
+                    "Measurable response time improvements from day one",
+                  ],
+                  cta: "Discuss Government Licensing",
+                  href: "https://app.bridgeocean.xyz",
+                  accent: "border-blue-600/50 bg-blue-950/20",
+                  btnClass: "bg-blue-600 hover:bg-blue-700",
+                  dotColor: "bg-blue-400",
                 },
                 {
-                  icon: Heart,
-                  title: "Hospitals & Clinics",
-                  sub: "Partner Institutions",
-                  access: "Capacity & Intake Portal",
-                  bullet: ["Incoming patient pre-alerts", "Bed & resource management", "Ambulance ETA feeds", "Incident handover records"],
-                  cta: "Partner With Us",
-                  href: "/contact",
-                  accent: "border-pink-600/50 bg-pink-950/20",
-                  btnClass: "bg-pink-700 hover:bg-pink-800",
+                  icon: HeartPulse,
+                  badge: "HMO",
+                  badgeColor: "bg-violet-600",
+                  title: "HMOs & Health Insurers",
+                  body: "Bundle real emergency coordination into your health plan. Your members get a coordinated response when they need it most — not a busy tone.",
+                  bullet: [
+                    "Emergency coordination as a premium health plan benefit",
+                    "Reduce claims from delayed emergency response",
+                    "National and state health insurance integration pathways",
+                    "Branded emergency channel for your members",
+                  ],
+                  cta: "Explore HMO Partnership",
+                  href: "https://app.bridgeocean.xyz",
+                  accent: "border-violet-600/50 bg-violet-950/20",
+                  btnClass: "bg-violet-600 hover:bg-violet-700",
+                  dotColor: "bg-violet-400",
                 },
                 {
-                  icon: Lock,
-                  title: "Nexus Operators",
-                  sub: "Internal Command",
-                  access: "Full Command Centre",
-                  bullet: ["Live dispatch board", "Multi-unit coordination", "Incident escalation", "Analytics & reporting"],
-                  cta: "Restricted Access",
-                  href: "#",
-                  accent: "border-gray-600/50 bg-gray-900/40",
-                  btnClass: "bg-gray-700 cursor-not-allowed",
-                  locked: true,
+                  icon: Briefcase,
+                  badge: "B2B",
+                  badgeColor: "bg-amber-600",
+                  title: "Corporations & Enterprises",
+                  body: "Your duty of care doesn&#39;t end when staff leave the office. Nexus extends real emergency coverage to every person, site, and vehicle in your operation.",
+                  bullet: [
+                    "Emergency dispatch for staff across every site",
+                    "Panic button hardware for vehicles and campus zones",
+                    "Real-time incident dashboard for your safety team",
+                    "Corporate charter fleet with active Nexus protection",
+                  ],
+                  cta: "Get a Corporate Proposal",
+                  href: "https://app.bridgeocean.xyz",
+                  accent: "border-amber-600/50 bg-amber-950/20",
+                  btnClass: "bg-amber-600 hover:bg-amber-700",
+                  dotColor: "bg-amber-400",
                 },
               ].map((tier) => (
-                <Card key={tier.title} className={`border ${tier.accent} text-white`}>
+                <Card key={tier.title} className={`border ${tier.accent} text-white flex flex-col`}>
                   <CardHeader className="pb-3">
-                    <div className="flex items-center gap-3 mb-2">
-                      <tier.icon className="h-6 w-6 text-white/70" />
-                      {tier.locked && <Lock className="h-4 w-4 text-gray-500" />}
+                    <div className="flex items-center justify-between mb-3">
+                      <tier.icon className="h-7 w-7 text-white/70" />
+                      <span className={`text-xs text-white font-bold px-2 py-0.5 rounded-full ${tier.badgeColor}`}>{tier.badge}</span>
                     </div>
                     <CardTitle className="text-white text-xl">{tier.title}</CardTitle>
-                    <p className="text-xs text-gray-400">{tier.sub}</p>
-                    <Badge className="w-fit mt-2 bg-white/5 text-gray-300 border-white/10 text-xs">{tier.access}</Badge>
+                    <p className="text-sm text-gray-400 leading-relaxed pt-1">{tier.body}</p>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-4 flex-1 flex flex-col justify-between">
                     <ul className="space-y-2">
                       {tier.bullet.map((b) => (
-                        <li key={b} className="flex items-center gap-2 text-sm text-gray-400">
-                          <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        <li key={b} className="flex items-start gap-2 text-sm text-gray-300">
+                          <span className={`mt-1.5 h-1.5 w-1.5 rounded-full flex-shrink-0 ${tier.dotColor}`} />
                           {b}
                         </li>
                       ))}
                     </ul>
-                    <Link href={tier.href}>
-                      <Button className={`w-full mt-2 ${tier.btnClass} text-white`} disabled={tier.locked}>
-                        {tier.cta}
+                    <Link href={tier.href} className="block pt-2">
+                      <Button className={`w-full ${tier.btnClass} text-white gap-2`}>
+                        {tier.cta} <ArrowRight className="h-4 w-4" />
                       </Button>
                     </Link>
                   </CardContent>
@@ -381,7 +401,7 @@ export default function NexusPage() {
             <div className="grid gap-8 md:grid-cols-4 text-center text-white">
               {[
                 { val: "227M+", label: "People in Nigeria", sub: "Our primary coverage target" },
-                { val: "~15/min", label: "Global emergency deaths", sub: "That coordinated response prevents" },
+                { val: "15/min", label: "Global emergency deaths", sub: "That coordinated response prevents" },
                 { val: "45%", label: "Use private cars in emergencies", sub: "Due to zero ambulance coordination" },
                 { val: "<60 min", label: "Golden Hour target", sub: "Nexus response-to-hospital benchmark" },
               ].map((s) => (
@@ -456,25 +476,23 @@ export default function NexusPage() {
           <div className="container px-4 md:px-6">
             <div className="max-w-3xl mx-auto text-center space-y-6">
               <h2 className="text-3xl font-bold sm:text-4xl md:text-5xl">
-                Help Us Build Africa's Emergency Nervous System
+                Your organisation protects lives.<br />Give it the platform to do it.
               </h2>
               <p className="text-gray-400 md:text-lg">
-                We're partnering with hospitals, government agencies, NGOs, and investors who believe that emergency
-                response infrastructure is a right — not a luxury. If that's you, let's talk.
+                Government, HMO, or enterprise — Nexus has a deployment pathway built for your scale and sector. Talk to us and we will walk you through it.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-center pt-2">
-                <Link href="/contact">
+                <Link href="https://app.bridgeocean.xyz">
                   <Button size="lg" className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto gap-2">
-                    <Mail className="h-4 w-4" />
-                    Contact Bridgeocean
-                  </Button>
-                </Link>
-                <Link href="/nexus/naijarescue">
-                  <Button size="lg" variant="outline" className="bg-transparent border-white/20 text-white hover:bg-white/10 w-full sm:w-auto gap-2">
                     <Activity className="h-4 w-4" />
-                    View Live NaijaRescue Data
+                    Access Nexus Platform
                   </Button>
                 </Link>
+                <Button size="lg" variant="outline" className="bg-transparent border-white/20 text-white hover:bg-white/10 w-full sm:w-auto gap-2"
+                  onClick={() => window.open("https://wa.me/2349069183165?text=Hi%2C%20I%27d%20like%20to%20discuss%20Nexus%20for%20my%20organisation", "_blank")}>
+                  <Phone className="h-4 w-4" />
+                  WhatsApp Us
+                </Button>
               </div>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-4 text-gray-400 text-sm">
                 <div className="flex items-center gap-2">
