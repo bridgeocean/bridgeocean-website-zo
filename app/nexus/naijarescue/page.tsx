@@ -92,7 +92,7 @@ export default function NaijaRescuePage() {
 
         {/* ── Real Life Imagery ── */}
         <section className="w-full py-0 bg-black overflow-hidden">
-          <div className="grid grid-cols-2 md:grid-cols-4 h-56 md:h-72">
+          <div className="grid grid-cols-2 md:grid-cols-4 h-64 md:h-72">
             {/* Emergency Dispatch — dark skin */}
             <div
               className="relative overflow-hidden"

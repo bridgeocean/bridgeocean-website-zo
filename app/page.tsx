@@ -173,7 +173,7 @@ export default function Home() {
 
             <div className="mx-auto max-w-5xl">
               {/* Flow steps */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {[
                   { step: "01", title: "Incident Reported", body: "A panic button press, SOS call, or operator alert reaches Nexus — GPS location captured, incident type classified.", color: "text-red-400", border: "border-red-900/40", bg: "bg-red-950/20" },
                   { step: "02", title: "Case Created", body: "Nexus opens a tracked case with a unique ID, timestamps, and a full audit trail from first contact.", color: "text-orange-400", border: "border-orange-900/40", bg: "bg-orange-950/20" },
