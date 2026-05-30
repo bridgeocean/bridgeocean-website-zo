@@ -6,11 +6,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Bridgeocean — Emergency Response Infrastructure for Africa",
   description:
-    "Bridgeocean builds Africa's emergency response infrastructure. Nexus Emergency Platform: AI + satellite-powered coordination for ambulances, hospitals, and first responders in Nigeria.",
+    "Bridgeocean is building Africa's emergency response infrastructure. Nexus is the emergency coordination platform — connecting responders, hospitals, and organisations in real time.",
   openGraph: {
     title: "Bridgeocean — Emergency Response Infrastructure for Africa",
     description:
-      "AI-powered emergency coordination platform connecting ambulances, hospitals, and first responders across Nigeria.",
+      "Nexus is Africa's emergency coordination platform — from incident to resolution, in real time.",
     url: "https://www.bridgeocean.xyz",
     siteName: "Bridgeocean",
     type: "website",

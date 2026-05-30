@@ -80,7 +80,7 @@ export default function Home() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
               {[
                 { number: "15", label: "deaths every minute globally — 10 caused by poor coordination" },
-                { number: "227M+", label: "people in Nigeria Nexus aims to protect" },
+                { number: "227M+", label: "people in Nigeria Nexus is built to protect" },
                 { number: "45%", label: "of Nigerians use private cars during emergencies — no dispatch, no coordination" },
                 { number: "< 60 min", label: "golden hour for trauma survival — response time is everything" },
               ].map(({ number, label }) => (

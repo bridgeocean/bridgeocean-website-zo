@@ -37,7 +37,7 @@ const timeline = [
   {
     year: "2023",
     title: "Nexus Platform Development Begins",
-    body: "Engineering begins on the Nexus Emergency Platform — AI dispatch engine, satellite-GPS layer, and hospital integration bus — in parallel with continued charter operations.",
+    body: "Engineering begins on the Nexus — the emergency coordination platform with AI dispatch engine, satellite-GPS layer, and hospital integration bus — in parallel with continued charter operations.",
   },
   {
     year: "2024",
@@ -111,7 +111,7 @@ export default function AboutPage() {
                 </h1>
                 <p className="text-lg text-gray-300 leading-relaxed max-w-xl">
                   Bridgeocean Limited is a Lagos-based emergency response technology company. We operate the Nexus
-                  Emergency Platform — AI-driven, satellite-powered infrastructure that connects the public, ambulance
+                  Emergency Coordination Platform — connecting the public, ambulance
                   networks, and hospitals into a single coordinated response layer.
                 </p>
                 <p className="text-gray-400 leading-relaxed max-w-xl">
@@ -139,7 +139,7 @@ export default function AboutPage() {
                 {[
                   { label: "Address", value: "Block S3, Lekki Gardens Phase 5, Ajah 106104, Lagos", icon: MapPin },
                   { label: "Industry", value: "Emergency Response Technology", icon: Shield },
-                  { label: "Flagship Platform", value: "Nexus Emergency Platform", icon: Satellite },
+                  { label: "Flagship Platform", value: "Nexus", icon: Satellite },
                   { label: "Public Product", value: "NaijaRescue SOS Tool", icon: Activity },
                   { label: "Charter Fleet", value: "Nexus-Enabled, Panic Button Equipped", icon: Shield },
                   { label: "Coverage Target", value: "Nigeria → Africa", icon: Globe },
@@ -249,10 +249,10 @@ export default function AboutPage() {
               {[
                 {
                   icon: Satellite,
-                  title: "Nexus Emergency Platform",
+                  title: "Nexus",
                   badge: "Core IP",
                   badgeClass: "bg-red-600/20 text-red-400 border-red-600/40",
-                  body: "AI + satellite-powered emergency coordination infrastructure. Handles SOS intake, triage, dispatch, live tracking, and hospital pre-alerting for Nigeria.",
+                  body: "The emergency coordination platform. Handles SOS intake, triage, dispatch, live tracking, and hospital pre-alerting — from incident to resolution.",
                   bullets: ["AI dispatch engine", "Satellite-GPS layer", "Hospital integration bus", "Multi-responder coordination"],
                   link: "/nexus",
                   cta: "Explore Nexus",

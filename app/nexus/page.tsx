@@ -62,7 +62,7 @@ export default function NexusPage() {
                   <span className="text-white">Platform</span>
                 </h1>
                 <p className="text-lg text-gray-300 max-w-[560px] leading-relaxed">
-                  Africa's first AI-driven, satellite-powered emergency coordination infrastructure.
+                  Africa's emergency coordination platform — connecting responders, hospitals, and organisations from incident to resolution, in real time.
                   Nexus connects the distressed public, ambulance networks, hospitals, and first responders
                   into a single real-time command layer — so no one dies waiting.
                 </p>
