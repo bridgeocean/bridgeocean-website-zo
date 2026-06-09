@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, ExternalLink } from "lucide-react"
 import Image from "next/image"
+import { ModeToggle } from "@/components/mode-toggle"
 
 const navigation = [
   { name: "Nexus Platform", href: "/nexus", external: false },
@@ -74,6 +75,9 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
           >
             Access Nexus
           </Button>
+
+          {/* Theme Toggle */}
+          <ModeToggle />
 
           {/* Mobile Navigation */}
           <Sheet open={open} onOpenChange={setOpen}>

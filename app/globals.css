@@ -269,3 +269,58 @@
     font-size: 1.75rem;
   }
 }
+
+/* ================================================================
+   THEME SYSTEM — Light / Dark / System
+   The site uses hardcoded dark Tailwind classes.
+   When .dark is absent (light/system-light), these overrides apply.
+   ================================================================ */
+
+/* --- Backgrounds --- */
+html:not(.dark) .bg-black          { background-color: #ffffff !important; }
+html:not(.dark) .bg-zinc-950       { background-color: #f8fafc !important; }
+html:not(.dark) .bg-zinc-900       { background-color: #f1f5f9 !important; }
+html:not(.dark) .bg-zinc-800       { background-color: #e2e8f0 !important; }
+html:not(.dark) .bg-zinc-700       { background-color: #cbd5e1 !important; }
+
+/* Opacity-variant backgrounds that Tailwind escapes the slash */
+html:not(.dark) .bg-zinc-900\/90   { background-color: rgba(241,245,249,0.93) !important; }
+html:not(.dark) .bg-zinc-900\/50   { background-color: rgba(241,245,249,0.5) !important; }
+html:not(.dark) .bg-zinc-800\/50   { background-color: rgba(226,232,240,0.5) !important; }
+
+/* Red accent backgrounds — keep them; just lighten the very-dark ones */
+html:not(.dark) .bg-red-950\/30    { background-color: rgba(220,38,38,0.08) !important; }
+html:not(.dark) .bg-red-950\/40    { background-color: rgba(220,38,38,0.10) !important; }
+html:not(.dark) .bg-red-950\/50    { background-color: rgba(220,38,38,0.12) !important; }
+
+/* --- Text --- */
+html:not(.dark) .text-white        { color: #0f172a !important; }
+html:not(.dark) .text-zinc-400     { color: #475569 !important; }
+html:not(.dark) .text-zinc-300     { color: #1e293b !important; }
+html:not(.dark) .text-zinc-500     { color: #64748b !important; }
+html:not(.dark) .text-zinc-600     { color: #475569 !important; }
+html:not(.dark) .text-gray-300     { color: #1e293b !important; }
+html:not(.dark) .text-gray-400     { color: #475569 !important; }
+html:not(.dark) .text-gray-500     { color: #64748b !important; }
+html:not(.dark) .text-gray-600     { color: #475569 !important; }
+/* Keep red text – it reads fine on both modes */
+/* Keep text-red-* as-is */
+
+/* --- Borders --- */
+html:not(.dark) .border-zinc-800   { border-color: #cbd5e1 !important; }
+html:not(.dark) .border-zinc-700   { border-color: #e2e8f0 !important; }
+html:not(.dark) .border-zinc-600   { border-color: #94a3b8 !important; }
+html:not(.dark) .border-red-900\/40 { border-color: rgba(220,38,38,0.2) !important; }
+
+/* --- Hover states (bg-zinc-800 hover target) --- */
+html:not(.dark) .hover\:bg-zinc-800:hover { background-color: #e2e8f0 !important; }
+html:not(.dark) .hover\:bg-zinc-900:hover { background-color: #f1f5f9 !important; }
+html:not(.dark) .hover\:text-white:hover  { color: #0f172a !important; }
+
+/* --- Specific components --- */
+/* SheetContent mobile nav */
+html:not(.dark) [data-slot="sheet-content"] {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+}
